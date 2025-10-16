@@ -27,7 +27,11 @@ namespace Game.Gameplay
 		public bool IsBlack { get; private set; }
 		public bool IsKnockedOut { get; private set; } = false;
 
-		public bool IsQueen => _isQueen;
+		public bool IsQueen
+		{
+			get => _isQueen;
+			set => _isQueen = value;
+		}
 
 		private void Awake()
 		{

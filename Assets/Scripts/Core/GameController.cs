@@ -43,7 +43,7 @@ namespace Game.Core
 			_board.LocateFigures();
 			_player = new PlayerWithInputController(_board.CurrentBoard,
 				_board.Points);
-			_opponent = new EasyBotController(_board.CurrentBoard, _board.Points);
+			_opponent = new HardBotController(_board.CurrentBoard, _board.Points);
 			StartGameLoopAsync().Forget();
 		}
 

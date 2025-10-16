@@ -2247,7 +2247,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.GameController
   _board: {fileID: 1673739960}
-  _mainCamera: {fileID: 0}
+  _mainCamera: {fileID: 249873202}
   _guiController: {fileID: 1564781474}
 --- !u!1 &1846486787
 GameObject:
