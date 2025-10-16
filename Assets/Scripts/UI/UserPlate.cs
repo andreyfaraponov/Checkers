@@ -33,13 +33,13 @@ namespace Game.UI
 			switch (difficulty)
 			{
 				case Difficulty.Easy:
-					_healthSlider.value = 0.1f;
+					_difficultySlider.value = 0.1f;
 					break;
 				case Difficulty.Medium:
-					_healthSlider.value = 0.5f;
+					_difficultySlider.value = 0.5f;
 					break;
 				case Difficulty.Hard:
-					_healthSlider.value = 1f;
+					_difficultySlider.value = 1f;
 					break;
 			}
 		}
