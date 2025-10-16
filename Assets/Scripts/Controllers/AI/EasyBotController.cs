@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using Game.Core;
 using Game.Gameplay;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -15,8 +16,8 @@ namespace Game.Controllers.AI
 	{
 		private readonly Dictionary<PositionPoint, List<PositionPoint>> _possibleMoves = new();
 
-		public EasyBotController(PositionPoint[,] board, List<PositionPoint> points) 
-			: base(board, points)
+		public EasyBotController(PositionPoint[,] board, List<PositionPoint> points, Board boardReference = null) 
+			: base(board, points, boardReference)
 		{
 		}
 

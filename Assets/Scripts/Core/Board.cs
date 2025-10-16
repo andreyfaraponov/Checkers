@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Game.Gameplay;
 using UnityEditor;
@@ -9,6 +10,8 @@ namespace Game.Core
 	public class Board : MonoBehaviour
 	{
 		public const int BoardSize = 8;
+
+		public event Action<bool> FigureAttackedEvent;
 
 		[Header("Points")]
 		[SerializeField]
@@ -34,6 +37,11 @@ namespace Game.Core
 		
 		public PositionPoint[,] CurrentBoard => _boardPositions;
 		public List<PositionPoint> Points => _points;
+
+		public void OnFigureAttacked(bool isBlackFigure)
+		{
+			FigureAttackedEvent?.Invoke(isBlackFigure);
+		}
 
 		public void RefreshBoard()
 		{

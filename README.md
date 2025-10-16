@@ -50,5 +50,5 @@ Turn-based strategy board game
 - ✅ AI architecture foundation (Phase 1)
 - ✅ Medium AI difficulty (Phase 2) - Score-based evaluation with tactical awareness
 - ✅ Hard AI difficulty (Phase 3) - Minimax with alpha-beta pruning
-- 🚧 Difficulty selection UI (Phase 4 - in planning)
-- 🚧 Polish & testing (Phase 5 - in planning)
+- ✅ Difficulty selection UI (Phase 4) - Complete with visual feedback and integration
+- 🚧 Polish & testing (Phase 5 - optional)

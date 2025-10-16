@@ -1,4 +1,5 @@
 using Game.Core;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,7 +12,7 @@ namespace Game.UI
 	public class GameEndUI : MonoBehaviour
 	{
 		[SerializeField]
-		private TMPro.TextMeshProUGUI _messageText;
+		private TMP_Text _messageText;
 
 		[SerializeField]
 		private Button _restartButton;

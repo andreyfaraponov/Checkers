@@ -27,8 +27,8 @@ namespace Game.Controllers.AI
 
 		private readonly Dictionary<PositionPoint, List<PositionPoint>> _possibleMoves = new();
 
-		public MediumBotController(PositionPoint[,] board, List<PositionPoint> points) 
-			: base(board, points)
+		public MediumBotController(PositionPoint[,] board, List<PositionPoint> points, Board boardReference = null) 
+			: base(board, points, boardReference)
 		{
 		}
 

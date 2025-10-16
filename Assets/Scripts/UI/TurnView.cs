@@ -1,4 +1,5 @@
 using DG.Tweening;
+using Game.Utils;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,7 +25,7 @@ namespace Game.UI
 
         private Tween _tween;
 
-        public void ShowTurn(bool isUserTurn)
+        public void ShowTurn(bool isUserTurn, Difficulty difficulty = Difficulty.Medium)
         {
             _tween?.Complete();
             
@@ -32,9 +33,21 @@ namespace Game.UI
                 ? _playerBackground
                 : _botBackground;
             
-            _turnText.text = isUserTurn
-                ? "ТВІЙ ХІД!"
-                : "ХОДИТЬ БОТ";
+            if (isUserTurn)
+            {
+                _turnText.text = "ТВІЙ ХІД!";
+            }
+            else
+            {
+                string difficultyText = difficulty switch
+                {
+                    Difficulty.Easy => "ЛЕГКИЙ",
+                    Difficulty.Medium => "СЕРЕДНІЙ",
+                    Difficulty.Hard => "ВАЖКИЙ",
+                    _ => ""
+                };
+                _turnText.text = $"БОТ ({difficultyText})";
+            }
 
             _tween = _canvasGroup.DOFade(1, 0.2f).OnComplete(() =>
             {

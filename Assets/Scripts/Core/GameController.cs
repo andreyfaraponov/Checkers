@@ -19,10 +19,16 @@ namespace Game.Core
 		[SerializeField]
 		private GuiController _guiController;
 
+		[SerializeField]
+		private DifficultySelector _difficultySelector;
+
 		private IPlayerController _player;
 		private IPlayerController _opponent;
 
 		private GameState _gameState = GameState.Playing;
+		private Difficulty _currentDifficulty = Difficulty.Medium;
+		private int _playerScore = 0;
+		private int _opponentScore = 0;
 
 		// Start is called once before the first execution of Update after the MonoBehaviour is created
 		private async void Start()
@@ -31,7 +37,34 @@ namespace Game.Core
 			await UniTask.Delay(1000);
 			_mainCamera.fieldOfView = 37;
 			Application.targetFrameRate = 60;
-			_guiController.PlayOneMoreGameEvent += StartGame;
+			_guiController.PlayOneMoreGameEvent += ShowDifficultySelector;
+			_difficultySelector.GameStartEvent += OnDifficultySelected;
+			_board.FigureAttackedEvent += FigureAttackedHandler;
+			ShowDifficultySelector();
+		}
+
+		private void FigureAttackedHandler(bool isBlackFigure)
+		{
+			if (isBlackFigure)
+				_playerScore++;
+			else
+				_opponentScore++;
+			
+			_guiController.UpdateScore(_playerScore, _opponentScore);
+		}
+
+		private void ShowDifficultySelector()
+		{
+			_guiController.HideAll();
+			_difficultySelector.Show();
+		}
+
+		private void OnDifficultySelected()
+		{
+			_currentDifficulty = _difficultySelector.GetSelectedDifficulty();
+			_guiController.SetDifficulty(_currentDifficulty);
+			_guiController.SetDifficultyBotPlate(_currentDifficulty);
+			_difficultySelector.Hide();
 			StartGame();
 		}
 
@@ -39,17 +72,31 @@ namespace Game.Core
 		{
 			_gameState = GameState.Playing;
 			_guiController.HideAll();
+			_playerScore = 0;
+			_opponentScore = 0;
 			_board.RefreshBoard();
 			_board.LocateFigures();
 			_player = new PlayerWithInputController(_board.CurrentBoard,
-				_board.Points);
-			_opponent = new HardBotController(_board.CurrentBoard, _board.Points);
+				_board.Points, _board);
+			_guiController.UpdateScore(_playerScore, _opponentScore);
+			_opponent = CreateOpponent();
 			StartGameLoopAsync().Forget();
+		}
+
+		private IPlayerController CreateOpponent()
+		{
+			return _currentDifficulty switch
+			{
+				Difficulty.Easy => new EasyBotController(_board.CurrentBoard, _board.Points, _board),
+				Difficulty.Medium => new MediumBotController(_board.CurrentBoard, _board.Points, _board),
+				Difficulty.Hard => new HardBotController(_board.CurrentBoard, _board.Points, _board),
+				_ => new MediumBotController(_board.CurrentBoard, _board.Points, _board)
+			};
 		}
 
 		private async UniTask StartGameLoopAsync()
 		{
-			Debug.LogError($"StartGameLoopAsync: {_gameState}");
+			Debug.Log($"StartGameLoopAsync: {_gameState}");
 			while (_gameState == GameState.Playing)
 			{
 				_guiController.ShowTurn(isUserTurn: true);
@@ -91,7 +138,7 @@ namespace Game.Core
 
 			Debug.Log($"Game End: {message}");
 
-			_guiController.ShowGameResults(_gameState == GameState.PlayerWin, 0, 0);
+			_guiController.ShowGameResults(_gameState == GameState.PlayerWin, _playerScore, _opponentScore);
 		}
 
 		public void RestartGame()

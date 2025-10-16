@@ -33,8 +33,8 @@ namespace Game.Controllers.AI
 
 		private readonly Dictionary<PositionPoint, List<PositionPoint>> _possibleMoves = new();
 
-		public HardBotController(PositionPoint[,] board, List<PositionPoint> points) 
-			: base(board, points)
+		public HardBotController(PositionPoint[,] board, List<PositionPoint> points, Board boardReference = null) 
+			: base(board, points, boardReference)
 		{
 		}
 

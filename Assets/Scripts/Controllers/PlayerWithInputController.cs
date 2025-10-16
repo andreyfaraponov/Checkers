@@ -13,6 +13,7 @@ namespace Game.Controllers
 	{
 		private readonly PositionPoint[,] _board;
 		private readonly List<PositionPoint> _points;
+		private readonly Board _boardReference;
 
 		private UniTaskCompletionSource _currentTurnCompletionSource;
 		private Figure _selectedFigure;
@@ -20,10 +21,11 @@ namespace Game.Controllers
 		private Dictionary<Figure, Dictionary<PositionPoint, AttackData>> _figuresThatCanAttack = new();
 		private List<PositionPoint> _availableMoves = new();
 
-		public PlayerWithInputController(PositionPoint[,] board, List<PositionPoint> points)
+		public PlayerWithInputController(PositionPoint[,] board, List<PositionPoint> points, Board boardReference = null)
 		{
 			_board = board;
 			_points = points;
+			_boardReference = boardReference;
 		}
 
 		public UniTask AwaitMove()
@@ -129,8 +131,12 @@ namespace Game.Controllers
 		private void AttackFigure(PositionPoint moveTo)
 		{
 			var pointFigureToRemove = _moveToAttackPoint[moveTo];
+			bool isBlackFigure = pointFigureToRemove.AttackPosition.Figure.IsBlack;
+			
 			Object.Destroy(pointFigureToRemove.AttackPosition.Figure.gameObject);
 			pointFigureToRemove.AttackPosition.SetFigure(null);
+			
+			_boardReference?.OnFigureAttacked(isBlackFigure);
 		}
 
 		private void MoveFigure(Figure figure, PositionPoint destination)

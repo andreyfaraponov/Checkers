@@ -15,13 +15,15 @@ namespace Game.Controllers.AI
 	{
 		protected readonly PositionPoint[,] _board;
 		protected readonly List<PositionPoint> _points;
+		protected readonly Board _boardReference;
 		protected UniTaskCompletionSource _currentTurnCompletionSource;
 		protected Figure _lastAttackFigure;
 
-		protected BaseBotController(PositionPoint[,] board, List<PositionPoint> points)
+		protected BaseBotController(PositionPoint[,] board, List<PositionPoint> points, Board boardReference = null)
 		{
 			_board = board;
 			_points = points;
+			_boardReference = boardReference;
 		}
 
 		public async UniTask AwaitMove()
@@ -93,12 +95,16 @@ namespace Game.Controllers.AI
 			return () =>
 			{
 				var figureMove = from.Figure;
+				bool isBlackFigure = attack.Figure.IsBlack;
+				
 				to.SetFigure(figureMove);
 				from.SetFigure(null);
 				Object.Destroy(attack.Figure.gameObject);
 				attack.SetFigure(null);
 				CheckAndPromoteToQueen(figureMove, to);
 				_lastAttackFigure = figureMove;
+				
+				_boardReference?.OnFigureAttacked(isBlackFigure);
 			};
 		}
 
