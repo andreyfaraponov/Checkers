@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using Game.Core;
-using Game.Gameplay;
+using Core;
+using Gameplay;
+using UnityEngine;
 
-namespace Game.Utils
+namespace Utils
 {
 	public enum GameState
 	{
@@ -244,6 +245,7 @@ namespace Game.Utils
 			var blackFigures = points.Where(p => p.Figure != null && p.Figure.IsBlack).ToList();
 
 			// Check if one side has no pieces left
+			Debug.Log($"White: {whiteFigures.Count}, Black: {blackFigures.Count}");
 			if (whiteFigures.Count == 0)
 				return GameState.OpponentWin;
 
@@ -273,12 +275,18 @@ namespace Game.Utils
 				// Check if figure has any attack moves
 				var attacks = GetAvailableAttacksDictionary(board, figurePoint);
 				if (attacks.Count > 0)
+				{
+					Debug.Log($"Has attacks");
 					return true;
+				}
 
 				// Check if figure has any simple moves
 				var moves = GetAvailableSimpleMoves(board, figurePoint);
 				if (moves.Count > 0)
+				{
+					Debug.Log($"Has moves");
 					return true;
+				}
 			}
 
 			return false;

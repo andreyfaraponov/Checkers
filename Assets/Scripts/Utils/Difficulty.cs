@@ -1,4 +1,4 @@
-namespace Game.Utils
+namespace Utils
 {
 	public enum Difficulty
 	{
