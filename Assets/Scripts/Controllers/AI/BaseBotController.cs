@@ -1,15 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Core;
 using Cysharp.Threading.Tasks;
-using Game.Controllers;
-using Game.Core;
-using Game.Gameplay;
-using Game.Utils;
+using Gameplay;
 using UnityEngine;
+using Utils;
 using Object = UnityEngine.Object;
 
-namespace Game.Controllers.AI
+namespace Controllers.AI
 {
 	public abstract class BaseBotController : IPlayerController
 	{
@@ -43,6 +42,7 @@ namespace Game.Controllers.AI
 		/// <summary>
 		/// Try to continue attacking with the same figure if multi-jump is available
 		/// </summary>
+		
 		protected void TryAttackOneMoreTime()
 		{
 			var figurePosition = _points.First(p => p.Figure == _lastAttackFigure);

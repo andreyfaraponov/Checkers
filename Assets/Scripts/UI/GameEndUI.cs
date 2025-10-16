@@ -1,9 +1,9 @@
-using Game.Core;
+using Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Game.UI
+namespace UI
 {
 	/// <summary>
 	/// Simple UI component for displaying game end state.

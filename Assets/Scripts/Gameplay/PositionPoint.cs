@@ -2,7 +2,7 @@ using System;
 using DG.Tweening;
 using UnityEngine;
 
-namespace Game.Gameplay
+namespace Gameplay
 {
 	public class PositionPoint : MonoBehaviour
 	{
@@ -29,18 +29,28 @@ namespace Game.Gameplay
 		public int Y { get; private set; }
 		public int X { get; private set; }
 
-		private void Awake() =>
+		private void Awake()
+		{
+			if (!Application.isPlaying)
+				return;
+			
 			_meshRenderer.material = _whiteMaterial;
+		}
 
 		public void SetBlack()
 		{
-			_meshRenderer.material = _blackMaterial;
 			IsBlack = true;
+			
+			if (!Application.isPlaying)
+				return;
+			
+			_meshRenderer.material = _blackMaterial;
 		}
 
 		public void SetFigure(Figure figure)
 		{
 			_figure = figure;
+			
 			if (_figure != null)
 				figure.transform.DOMove(transform.position, 0.3f);
 		}

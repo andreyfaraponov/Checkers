@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using Core;
 using Cysharp.Threading.Tasks;
-using Game.Core;
-using Game.Gameplay;
-using UnityEngine;
+using Gameplay;
 using Random = UnityEngine.Random;
 
-namespace Game.Controllers.AI
+namespace Controllers.AI
 {
 	/// <summary>
 	/// Easy difficulty AI that makes random moves from available options

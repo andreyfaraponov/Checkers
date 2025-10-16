@@ -1,11 +1,10 @@
-using System;
 using DG.Tweening;
-using Game.Utils;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Utils;
 
-namespace Game.UI
+namespace UI
 {
 	public class UserPlate : MonoBehaviour
 	{

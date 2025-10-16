@@ -1,11 +1,11 @@
+using Controllers;
+using Controllers.AI;
 using Cysharp.Threading.Tasks;
-using Game.Controllers;
-using Game.Controllers.AI;
-using Game.UI;
-using Game.Utils;
+using UI;
 using UnityEngine;
+using Utils;
 
-namespace Game.Core
+namespace Core
 {
 	public class GameController : MonoBehaviour
 	{

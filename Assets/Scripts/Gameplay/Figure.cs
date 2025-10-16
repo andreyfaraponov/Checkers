@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Game.Gameplay
+namespace Gameplay
 {
 	public class Figure : MonoBehaviour
 	{
@@ -41,15 +41,20 @@ namespace Game.Gameplay
 
 		public void SetBlack()
 		{
+			IsBlack = true;
+			
+			if (!Application.isPlaying)
+				return;
+			
 			_meshRenderer.material = _black;
 			_queenCrownRenderer.material = _black;
-			IsBlack = true;
 		}
 
 		public void SetQueen()
 		{
 			_isQueen = true;
-			if (_queenCrown != null)
+
+			if (_queenCrown != null && Application.isPlaying)
 				_queenCrown.SetActive(true);
 		}
 

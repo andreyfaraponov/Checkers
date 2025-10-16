@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Core;
 using Cysharp.Threading.Tasks;
-using Game.Core;
-using Game.Gameplay;
-using Game.Utils;
+using Gameplay;
 using UnityEngine;
+using Utils;
 using Random = UnityEngine.Random;
 
-namespace Game.Controllers.AI
+namespace Controllers.AI
 {
 	/// <summary>
 	/// Hard difficulty AI using advanced evaluation without minimax simulations

@@ -1,10 +1,10 @@
 using System;
 using DG.Tweening;
-using Game.Utils;
 using UnityEngine;
 using UnityEngine.UI;
+using Utils;
 
-namespace Game.UI
+namespace UI
 {
 	public class DifficultySelector : MonoBehaviour
 	{

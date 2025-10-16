@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using Game.Gameplay;
+using Gameplay;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Game.Core
+namespace Core
 {
 	public class Board : MonoBehaviour
 	{

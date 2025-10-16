@@ -1,8 +1,8 @@
 using System;
-using Game.Utils;
 using UnityEngine;
+using Utils;
 
-namespace Game.UI
+namespace UI
 {
 	public class GuiController : MonoBehaviour
 	{
