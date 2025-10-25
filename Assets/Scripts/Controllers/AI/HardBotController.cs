@@ -32,8 +32,9 @@ namespace Controllers.AI
 		private const float RANDOMNESS_FACTOR = 0.05f; // ±5% randomness
 
 		private readonly Dictionary<PositionPoint, List<PositionPoint>> _possibleMoves = new();
+		private int[,] _currentBoard;
 
-		public HardBotController(PositionPoint[,] board, List<PositionPoint> points, Board boardReference = null) 
+		public HardBotController(Board board, List<PositionPoint> points, Board boardReference = null) 
 			: base(board, points, boardReference)
 		{
 		}
@@ -41,6 +42,8 @@ namespace Controllers.AI
 		protected override async UniTask MakeMove()
 		{
 			_possibleMoves.Clear();
+
+			_currentBoard = _mainBoard.CurrentBoard.Clone() as int[,];
 
 			List<ScoredMove> scoredAttacks = EvaluateAttackMoves();
 			List<ScoredMove> scoredSimpleMoves = EvaluateSimpleMoves();

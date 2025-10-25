@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Extensions;
 using Gameplay;
 using UnityEditor;
 using UnityEngine;
@@ -33,9 +34,9 @@ namespace Core
 		[SerializeField]
 		private Transform _figuresRoot;
 
-		private PositionPoint[,] _boardPositions = new PositionPoint[BoardSize, BoardSize];
-		
-		public PositionPoint[,] CurrentBoard => _boardPositions;
+		private int[,] _board = new int[BoardSize, BoardSize];
+
+		public int[,] CurrentBoard => _board;
 		public List<PositionPoint> Points => _points;
 
 		public void OnFigureAttacked(bool isBlackFigure)
@@ -46,7 +47,7 @@ namespace Core
 		public void RefreshBoard()
 		{
 			Clear();
-			
+
 			float startPosX = transform.position.x - _cellSize * BoardSize / 2f + _cellSize / 2f;
 			float startPosY = transform.position.y - _cellSize * BoardSize / 2f + _cellSize / 2f;
 
@@ -58,13 +59,13 @@ namespace Core
 				{
 					var pos = new Vector3(initPos.x + x * _cellSize, 0, initPos.y);
 					var point = Instantiate(_cellPrefab, _cellsRoot);
-					
+
 					if ((y + x) % 2 == 0)
 						point.SetBlack();
-					
+
 					point.transform.position = pos;
 					point.SetPosition(x, y);
-					_boardPositions[y, x] = point;
+					_board[y, x] = GetFigureFromPosition(point);
 					_points.Add(point);
 				}
 			}
@@ -76,10 +77,37 @@ namespace Core
 					for (int x = 0; x < BoardSize; x++)
 					{
 						if (IsCellBlack(x, y))
-							_boardPositions[y, x].SetBlack();
+							_points[y * BoardSize + x].SetBlack();
 					}
 				}
 			}
+		}
+
+		public void MakeMove(Vector2Int from, Vector2Int to)
+		{
+			
+		}
+
+		public void MakeAttack(Vector2Int from,
+			Vector2Int to,
+			Vector2Int victimPosition)
+		{
+			
+		}
+
+		private static int GetFigureFromPosition(PositionPoint point)
+		{
+			if (point.Figure != null)
+			{
+				if (point.Figure.IsBlack)
+				{
+					return point.Figure.IsQueen ? 4 : 2;
+				}
+				
+				return point.Figure.IsQueen ? 3 : 1;
+			}
+			
+			return 0;
 		}
 
 		public void Clear()
@@ -88,11 +116,11 @@ namespace Core
 			{
 				if (pt.Figure != null)
 					DestroyImmediate(pt.Figure.gameObject);
-				
+
 				DestroyImmediate(pt.gameObject);
 			}
 
-			_boardPositions = new PositionPoint[BoardSize, BoardSize];
+			_board = new int[BoardSize, BoardSize];
 			_points.Clear();
 		}
 
@@ -106,7 +134,8 @@ namespace Core
 						continue;
 
 					var figure = Instantiate(_figurePrefab, _figuresRoot);
-					_boardPositions[y, x].SetFigure(figure);
+					_board.SetFigure(x, y, figure);
+					_points[y * BoardSize + x].SetFigure(figure);
 				}
 			}
 
@@ -119,7 +148,8 @@ namespace Core
 
 					var figure = Instantiate(_figurePrefab, _figuresRoot);
 					figure.SetBlack();
-					_boardPositions[y, x].SetFigure(figure);
+					_board.SetFigure(x, y, figure);
+					_points[y * BoardSize + x].SetFigure(figure);
 				}
 			}
 		}
@@ -128,7 +158,8 @@ namespace Core
 			(x + y) % 2 == 0;
 
 		#region EditorData
-		#if UNITY_EDITOR
+
+#if UNITY_EDITOR
 
 		[MenuItem("Board/Detect black cells")]
 		public static void DetectBlackCells()
@@ -186,7 +217,7 @@ namespace Core
 
 			return null;
 		}
-		#endif
+#endif
 
 		#endregion
 	}

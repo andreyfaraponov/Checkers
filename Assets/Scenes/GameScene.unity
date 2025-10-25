@@ -2789,7 +2789,7 @@ GameObject:
   - component: {fileID: 1564781470}
   - component: {fileID: 1564781474}
   m_Layer: 5
-  m_Name: GuiCanvas
+  m_Name: + Gui
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

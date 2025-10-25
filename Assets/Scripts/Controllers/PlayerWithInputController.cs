@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Core;
 using Cysharp.Threading.Tasks;
 using Gameplay;
@@ -11,21 +10,17 @@ namespace Controllers
 {
 	public class PlayerWithInputController : IPlayerController
 	{
-		private readonly PositionPoint[,] _board;
-		private readonly List<PositionPoint> _points;
-		private readonly Board _boardReference;
+		private readonly Board _board;
 
 		private UniTaskCompletionSource _currentTurnCompletionSource;
 		private Figure _selectedFigure;
-		private Dictionary<PositionPoint, AttackData> _moveToAttackPoint = new();
-		private Dictionary<Figure, Dictionary<PositionPoint, AttackData>> _figuresThatCanAttack = new();
-		private List<PositionPoint> _availableMoves = new();
+		private Dictionary<Vector2Int, AttackData> _moveToAttackPoint = new();
+		private Dictionary<Vector2Int, Dictionary<Vector2Int, AttackData>> _figuresThatCanAttack = new();
+		private List<Vector2Int> _availableMoves = new();
 
-		public PlayerWithInputController(PositionPoint[,] board, List<PositionPoint> points, Board boardReference = null)
+		public PlayerWithInputController(Board board)
 		{
 			_board = board;
-			_points = points;
-			_boardReference = boardReference;
 		}
 
 		public UniTask AwaitMove()
@@ -131,7 +126,7 @@ namespace Controllers
 		private void AttackFigure(PositionPoint moveTo)
 		{
 			var pointFigureToRemove = _moveToAttackPoint[moveTo];
-			bool isBlackFigure = pointFigureToRemove.AttackPosition.Figure.IsBlack;
+			bool isBlackFigure = _board.CurrentBoard[pointFigureToRemove.AttackPosition.y, pointFigureToRemove.AttackPosition.x] % 2 == 0;
 			
 			Object.Destroy(pointFigureToRemove.AttackPosition.Figure.gameObject);
 			pointFigureToRemove.AttackPosition.SetFigure(null);
@@ -203,7 +198,7 @@ namespace Controllers
 		private Dictionary<PositionPoint, AttackData> GetAvailableAttackMoves(Figure figure)
 		{
 			var figurePosition = GetFigurePosition(figure);
-			return CheckersBasics.GetAvailableAttacksDictionary(_board, figurePosition);
+			return CheckersBasics.GetAvailableAttacksDictionary(_board.CurrentBoard, figurePosition);
 		}
 
 		private List<PositionPoint> GetAvailableMoves(Figure selectedFigure)

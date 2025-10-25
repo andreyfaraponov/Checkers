@@ -24,18 +24,18 @@ namespace Utils
 			(-1, -1)   // Left-Down
 		};
 
-		public static Dictionary<PositionPoint, AttackData> GetAvailableAttacksDictionary(
-			PositionPoint[,] board,
-			PositionPoint figurePoint)
+		public static Dictionary<Vector2Int, AttackData> GetAvailableAttacksDictionary(
+			int[,] board,
+			Vector2Int figurePoint)
 		{
-			var result = new Dictionary<PositionPoint, AttackData>();
-			var figure = figurePoint.Figure;
+			var result = new Dictionary<Vector2Int, AttackData>();
+			var figure = board[figurePoint.y, figurePoint.x];
 
-			if (figure == null)
+			if (figure == 0)
 				return result;
 
 			// Both queens and regular pieces can attack in all 4 diagonal directions
-			if (figure.IsQueen)
+			if (figure > 2)
 			{
 				// Queens can attack long range in all 4 directions
 				foreach (var (dy, dx) in Directions)
@@ -55,17 +55,17 @@ namespace Utils
 			return result;
 		}
 
-		public static List<PositionPoint> GetAvailableSimpleMoves(
-			PositionPoint[,] board,
-			PositionPoint figurePoint)
+		public static List<Vector2Int> GetAvailableSimpleMoves(
+			int[,] board,
+			Vector2Int figurePoint)
 		{
-			var result = new List<PositionPoint>();
-			var figure = figurePoint.Figure;
+			var result = new List<Vector2Int>();
+			var figure = board[figurePoint.y, figurePoint.x];
 
-			if (figure == null)
+			if (figure == 0)
 				return result;
 
-			if (figure.IsQueen)
+			if (figure > 2)
 			{
 				// Queens can move long range in all 4 directions
 				foreach (var (dy, dx) in Directions)
@@ -76,7 +76,7 @@ namespace Utils
 			else
 			{
 				// Regular pieces can only move forward diagonally (2 directions)
-				int forwardDirection = figure.IsBlack ? -1 : 1;
+				int forwardDirection = figure == 2 ? -1 : 1;
 				TryAddSimpleMoveInDirection(figurePoint, board, result, forwardDirection, -1); // Forward-Left
 				TryAddSimpleMoveInDirection(figurePoint, board, result, forwardDirection, 1);  // Forward-Right
 			}
@@ -85,22 +85,22 @@ namespace Utils
 		}
 
 		private static void TryAddSimpleMoveInDirection(
-			PositionPoint point,
-			PositionPoint[,] board,
-			List<PositionPoint> list,
+			Vector2Int point,
+			int[,] board,
+			List<Vector2Int> list,
 			int dy,
 			int dx)
 		{
-			int newX = point.X + dx;
-			int newY = point.Y + dy;
+			int newX = point.x + dx;
+			int newY = point.y + dy;
 
 			if (!IsInBounds(newX, newY))
 				return;
 
 			var targetPosition = board[newY, newX];
 
-			if (targetPosition.Figure == null)
-				list.Add(targetPosition);
+			if (targetPosition == 0)
+				list.Add(new Vector2Int(newY, newX));
 		}
 
 		/// <summary>
@@ -114,39 +114,42 @@ namespace Utils
 		/// <param name="dy">Vertical direction: -1 (down) or 1 (up)</param>
 		/// <param name="dx">Horizontal direction: -1 (left) or 1 (right)</param>
 		private static void TryAddQueenMovesInDirection(
-			PositionPoint point,
-			PositionPoint[,] board,
-			List<PositionPoint> simpleMoves,
-			Dictionary<PositionPoint, AttackData> attacks,
+			Vector2Int point,
+			int[,] board,
+			List<Vector2Int> simpleMoves,
+			Dictionary<Vector2Int, AttackData> attacks,
 			int dy,
 			int dx)
 		{
 			int distance = 1;
-			PositionPoint enemyPosition = null;
+			Vector2Int enemyPosition = Vector2Int.one * -1;
 			bool hasEncounteredEnemy = false;
 
 			while (true)
 			{
-				int scanX = point.X + (dx * distance);
-				int scanY = point.Y + (dy * distance);
+				int scanX = point.x + (dx * distance);
+				int scanY = point.y + (dy * distance);
 
 				// Stop if we've reached the board edge
 				if (!IsInBounds(scanX, scanY))
 					break;
 
-				var scannedPosition = board[scanY, scanX];
-				var scannedFigure = scannedPosition.Figure;
+				var figure = board[scanY, scanX];
+				var pointFigure = board[point.y, point.x];
+				
+				
+				var scannedFigure = board[scanY, scanX];
 
 				// Found a piece on this square
-				if (scannedFigure != null)
+				if (figure != 0)
 				{
 					// Check if it's an enemy and we haven't already passed an enemy
-					bool isEnemy = scannedFigure.IsBlack != point.Figure.IsBlack;
+					bool isEnemy = figure % 2 > 0 != pointFigure % 2 > 0;
 
 					if (isEnemy && !hasEncounteredEnemy)
 					{
 						// Mark this enemy for potential capture
-						enemyPosition = scannedPosition;
+						enemyPosition = new Vector2Int(scanY, scanX);
 						hasEncounteredEnemy = true;
 						distance++;
 						continue;
@@ -162,18 +165,18 @@ namespace Utils
 					// This is a valid landing square after jumping the enemy
 					if (attacks != null)
 					{
-						attacks[scannedPosition] = new AttackData
+						attacks[new Vector2Int(scanY, scanX)] = new AttackData
 						{
 							StartPosition = point,
 							AttackPosition = enemyPosition,
-							FinalPosition = scannedPosition
+							FinalPosition = new Vector2Int(scanY, scanX)
 						};
 					}
 				}
 				else
 				{
 					// This is a valid simple move (no enemy encountered yet)
-					simpleMoves?.Add(scannedPosition);
+					simpleMoves?.Add(new Vector2Int(scanY, scanX));
 				}
 
 				distance++;
@@ -181,16 +184,16 @@ namespace Utils
 		}
 
 		private static void TryAddAttackInDirection(
-			PositionPoint point,
-			PositionPoint[,] board,
-			Dictionary<PositionPoint, AttackData> dict,
+			Vector2Int point,
+			int[,] board,
+			Dictionary<Vector2Int, AttackData> dict,
 			int dy,
 			int dx)
 		{
-			int adjacentX = point.X + dx;
-			int adjacentY = point.Y + dy;
-			int landingX = point.X + 2 * dx;
-			int landingY = point.Y + 2 * dy;
+			int adjacentX = point.x + dx;
+			int adjacentY = point.y + dy;
+			int landingX = point.x + 2 * dx;
+			int landingY = point.y + 2 * dy;
 
 			// Check if adjacent position is within bounds
 			if (!IsInBounds(adjacentX, adjacentY))
@@ -201,32 +204,33 @@ namespace Utils
 				return;
 
 			var adjacentPosition = board[adjacentY, adjacentX];
+			var pointPosition = board[point.y, point.x];
 
 			// Adjacent position must have an enemy figure
-			if (adjacentPosition.Figure == null)
+			if (adjacentPosition == 0)
 				return;
 
-			if (adjacentPosition.Figure.IsBlack == point.Figure.IsBlack)
+			if (adjacentPosition % 2 == 0 && pointPosition % 2 == 0)
 				return;
 
 			var landingPosition = board[landingY, landingX];
 
 			// Landing position must be empty
-			if (landingPosition.Figure != null)
+			if (landingPosition != 0)
 				return;
 
-			dict[landingPosition] = new AttackData
+			dict[new Vector2Int(landingY, landingY)] = new AttackData
 			{
-				AttackPosition = adjacentPosition,
-				FinalPosition = landingPosition,
+				AttackPosition = new Vector2Int(adjacentY, adjacentX),
+				FinalPosition = new Vector2Int(landingY, landingX),
 				StartPosition = point
 			};
 		}
 
 		private static void TryAddQueenAttacksInDirection(
-			PositionPoint point,
-			PositionPoint[,] board,
-			Dictionary<PositionPoint, AttackData> dict,
+			Vector2Int point,
+			int[,] board,
+			Dictionary<Vector2Int, AttackData> dict,
 			int dy,
 			int dx)
 		{
@@ -236,10 +240,10 @@ namespace Utils
 
 		private static bool IsInBounds(int x, int y)
 		{
-			return x >= 0 && x < Board.BoardSize && y >= 0 && y < Board.BoardSize;
+			return x is >= 0 and < Board.BoardSize && y is >= 0 and < Board.BoardSize;
 		}
 
-		public static GameState CheckGameState(PositionPoint[,] board, List<PositionPoint> points)
+		public static GameState CheckGameState(int[,] board, List<PositionPoint> points)
 		{
 			var whiteFigures = points.Where(p => p.Figure != null && !p.Figure.IsBlack).ToList();
 			var blackFigures = points.Where(p => p.Figure != null && p.Figure.IsBlack).ToList();
@@ -268,12 +272,12 @@ namespace Utils
 			return GameState.Playing;
 		}
 
-		private static bool HasAnyValidMoves(PositionPoint[,] board, List<PositionPoint> figures)
+		private static bool HasAnyValidMoves(int[,] board, List<PositionPoint> figures)
 		{
 			foreach (var figurePoint in figures)
 			{
 				// Check if figure has any attack moves
-				var attacks = GetAvailableAttacksDictionary(board, figurePoint);
+				var attacks = GetAvailableAttacksDictionary(board, new Vector2Int(figurePoint.X, figurePoint.Y));
 				if (attacks.Count > 0)
 				{
 					Debug.Log($"Has attacks");
@@ -281,7 +285,7 @@ namespace Utils
 				}
 
 				// Check if figure has any simple moves
-				var moves = GetAvailableSimpleMoves(board, figurePoint);
+				var moves = GetAvailableSimpleMoves(board, new Vector2Int(figurePoint.X, figurePoint.Y));
 				if (moves.Count > 0)
 				{
 					Debug.Log($"Has moves");
@@ -295,8 +299,8 @@ namespace Utils
 
 	public class AttackData
 	{
-		public PositionPoint StartPosition { get; set; }
-		public PositionPoint AttackPosition { get; set; }
-		public PositionPoint FinalPosition { get; set; }
+		public Vector2Int StartPosition { get; set; }
+		public Vector2Int AttackPosition { get; set; }
+		public Vector2Int FinalPosition { get; set; }
 	}
 }

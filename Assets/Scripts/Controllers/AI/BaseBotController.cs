@@ -12,15 +12,16 @@ namespace Controllers.AI
 {
 	public abstract class BaseBotController : IPlayerController
 	{
-		protected readonly PositionPoint[,] _board;
+		protected readonly int[,] _board;
+		protected readonly Board _mainBoard;
 		protected readonly List<PositionPoint> _points;
 		protected readonly Board _boardReference;
 		protected UniTaskCompletionSource _currentTurnCompletionSource;
 		protected Figure _lastAttackFigure;
 
-		protected BaseBotController(PositionPoint[,] board, List<PositionPoint> points, Board boardReference = null)
+		protected BaseBotController(Board mainBoard, List<PositionPoint> points, Board boardReference = null)
 		{
-			_board = board;
+			_mainBoard = mainBoard;
 			_points = points;
 			_boardReference = boardReference;
 		}
@@ -75,10 +76,10 @@ namespace Controllers.AI
 		protected List<Action> GetAttackActions(PositionPoint point)
 		{
 			List<Action> resultList = new List<Action>();
-			var figurePosition = _points.First(p => p.Figure == point.Figure);
+//			var figurePosition = _points.First(p => p.Figure == point.Figure);
 
 			foreach (var attackData in CheckersBasics.GetAvailableAttacksDictionary(_board,
-						 figurePosition).Values)
+						 new Vector2Int(point.X, point.Y)).Values)
 			{
 				resultList.Add(CreateAttackAction(attackData.StartPosition, attackData.FinalPosition,
 					attackData.AttackPosition));
@@ -90,17 +91,17 @@ namespace Controllers.AI
 		/// <summary>
 		/// Create an action that executes an attack move
 		/// </summary>
-		protected Action CreateAttackAction(PositionPoint from, PositionPoint to, PositionPoint attack)
+		protected Action CreateAttackAction(Vector2Int from, Vector2Int to, Vector2Int attack)
 		{
 			return () =>
 			{
-				var figureMove = from.Figure;
-				bool isBlackFigure = attack.Figure.IsBlack;
+				var figureMove = _mainBoard.CurrentBoard[from.y, from.x].Figure;
+				bool isBlackFigure = _mainBoard.CurrentBoard[from.y, from.x].Figure.IsBlack;
 				
-				to.SetFigure(figureMove);
-				from.SetFigure(null);
-				Object.Destroy(attack.Figure.gameObject);
-				attack.SetFigure(null);
+				_mainBoard.CurrentBoard[to.y, to.x].SetFigure(figureMove);
+				_mainBoard.CurrentBoard[from.y, from.x].SetFigure(null);
+				Object.Destroy(_mainBoard.CurrentBoard[attack.y, attack.x].Figure.gameObject);
+				_mainBoard.CurrentBoard[attack.y, attack.x].SetFigure(null);
 				CheckAndPromoteToQueen(figureMove, to);
 				_lastAttackFigure = figureMove;
 				
@@ -134,7 +135,7 @@ namespace Controllers.AI
 		/// <summary>
 		/// Get all available simple (non-attack) moves for a figure
 		/// </summary>
-		protected List<PositionPoint> GetAvailableMoves(Figure selectedFigure)
+		protected List<Vector2Int> GetAvailableMoves(Figure selectedFigure)
 		{
 			var figurePosition = _points.First(p => p.Figure == selectedFigure);
 			return CheckersBasics.GetAvailableSimpleMoves(_board, figurePosition);
@@ -154,7 +155,7 @@ namespace Controllers.AI
 		/// <summary>
 		/// Check if a piece should be promoted to queen and promote if needed
 		/// </summary>
-		protected void CheckAndPromoteToQueen(Figure figure, PositionPoint position)
+		protected void CheckAndPromoteToQueen(Figure figure, Vector2Int position)
 		{
 			if (figure.IsQueen)
 				return;

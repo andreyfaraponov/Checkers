@@ -73,8 +73,8 @@ namespace Editor.EidtModeTests
 
 			// Assert
 			Assert.AreEqual(2, moves.Count, "White piece should have 2 forward diagonal moves");
-			Assert.IsTrue(moves.Any(m => m.X == 2 && m.Y == 3), "Should be able to move forward-left");
-			Assert.IsTrue(moves.Any(m => m.X == 4 && m.Y == 3), "Should be able to move forward-right");
+			Assert.IsTrue(moves.Any(m => m.x == 2 && m.y == 3), "Should be able to move forward-left");
+			Assert.IsTrue(moves.Any(m => m.x == 4 && m.y == 3), "Should be able to move forward-right");
 		}
 
 		[Test]
@@ -89,8 +89,8 @@ namespace Editor.EidtModeTests
 
 			// Assert
 			Assert.AreEqual(2, moves.Count, "Black piece should have 2 forward diagonal moves");
-			Assert.IsTrue(moves.Any(m => m.X == 2 && m.Y == 4), "Should be able to move forward-left");
-			Assert.IsTrue(moves.Any(m => m.X == 4 && m.Y == 4), "Should be able to move forward-right");
+			Assert.IsTrue(moves.Any(m => m.x == 2 && m.y == 4), "Should be able to move forward-left");
+			Assert.IsTrue(moves.Any(m => m.x == 4 && m.y == 4), "Should be able to move forward-right");
 		}
 
 		[Test]
