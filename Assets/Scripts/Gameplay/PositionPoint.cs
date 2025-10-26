@@ -1,4 +1,5 @@
 using System;
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using UnityEngine;
 
@@ -53,6 +54,19 @@ namespace Gameplay
 			
 			if (_figure != null)
 				figure.transform.DOMove(transform.position, 0.3f);
+		}
+		
+		public UniTask SetFigureAsync(Figure figure, float duration = 0.3f)
+		{
+			_figure = figure;
+
+			if (_figure != null)
+			{
+				figure.transform.DOMove(transform.position, duration);
+				return UniTask.Delay((int)(duration * 1000));
+			}
+			
+			return UniTask.CompletedTask;
 		}
 
 		public void Highlight(bool highlight) =>

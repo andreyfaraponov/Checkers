@@ -18,13 +18,13 @@ namespace Utils
 	{
 		private static readonly (int dy, int dx)[] Directions =
 		{
-			(1, -1),   // Left-Up
-			(1, 1),    // Right-Up
-			(-1, 1),   // Right-Down
-			(-1, -1)   // Left-Down
+			(1, -1), // Left-Up
+			(1, 1), // Right-Up
+			(-1, 1), // Right-Down
+			(-1, -1) // Left-Down
 		};
 
-		public static Dictionary<Vector2Int, AttackData> GetAvailableAttacksDictionary(
+		public static Dictionary<Vector2Int, AttackData> GetAvailableAttacksForFigure(
 			int[,] board,
 			Vector2Int figurePoint)
 		{
@@ -40,7 +40,8 @@ namespace Utils
 				// Queens can attack long range in all 4 directions
 				foreach (var (dy, dx) in Directions)
 				{
-					TryAddQueenAttacksInDirection(figurePoint, board, result, dy, dx);
+					TryAddQueenAttacksInDirection(figurePoint, board, result,
+						dy, dx);
 				}
 			}
 			else
@@ -48,14 +49,15 @@ namespace Utils
 				// Regular pieces can attack in all 4 diagonal directions (one square jump)
 				foreach (var (dy, dx) in Directions)
 				{
-					TryAddAttackInDirection(figurePoint, board, result, dy, dx);
+					TryAddAttackInDirection(figurePoint, board, result,
+						dy, dx);
 				}
 			}
 
 			return result;
 		}
 
-		public static List<Vector2Int> GetAvailableSimpleMoves(
+		public static List<Vector2Int> GetAvailableSimpleMovesForFigure(
 			int[,] board,
 			Vector2Int figurePoint)
 		{
@@ -70,15 +72,17 @@ namespace Utils
 				// Queens can move long range in all 4 directions
 				foreach (var (dy, dx) in Directions)
 				{
-					TryAddQueenMovesInDirection(figurePoint, board, result, attacks: null, dy, dx);
+					TryAddQueenMovesInDirection(figurePoint, board, result,
+						attacks: null, dy, dx);
 				}
 			}
 			else
 			{
-				// Regular pieces can only move forward diagonally (2 directions)
-				int forwardDirection = figure == 2 ? -1 : 1;
-				TryAddSimpleMoveInDirection(figurePoint, board, result, forwardDirection, -1); // Forward-Left
-				TryAddSimpleMoveInDirection(figurePoint, board, result, forwardDirection, 1);  // Forward-Right
+				int forwardDirection = figure % 2 == 0 ? -1 : 1;
+				TryAddSimpleMoveInDirection(figurePoint, board, result,
+					forwardDirection, -1); // Forward-Left
+				TryAddSimpleMoveInDirection(figurePoint, board, result,
+					forwardDirection, 1); // Forward-Right
 			}
 
 			return result;
@@ -136,8 +140,8 @@ namespace Utils
 
 				var figure = board[scanY, scanX];
 				var pointFigure = board[point.y, point.x];
-				
-				
+
+
 				var scannedFigure = board[scanY, scanX];
 
 				// Found a piece on this square
@@ -235,61 +239,105 @@ namespace Utils
 			int dx)
 		{
 			// Use unified method for attacks only (pass null for simple moves)
-			TryAddQueenMovesInDirection(point, board, simpleMoves: null, attacks: dict, dy, dx);
+			TryAddQueenMovesInDirection(point, board, simpleMoves: null,
+				attacks: dict, dy, dx);
 		}
 
 		private static bool IsInBounds(int x, int y)
 		{
-			return x is >= 0 and < Board.BoardSize && y is >= 0 and < Board.BoardSize;
+			return x is >= 0 and < BoardController.BoardSize &&
+				   y is >= 0 and < BoardController.BoardSize;
 		}
 
-		public static GameState CheckGameState(int[,] board, List<PositionPoint> points)
+		public static GameState CheckGameState(int[,] board)
 		{
-			var whiteFigures = points.Where(p => p.Figure != null && !p.Figure.IsBlack).ToList();
-			var blackFigures = points.Where(p => p.Figure != null && p.Figure.IsBlack).ToList();
+			bool hasWhitePieces = false;
+			bool hasBlackPieces = false;
 
-			// Check if one side has no pieces left
-			Debug.Log($"White: {whiteFigures.Count}, Black: {blackFigures.Count}");
-			if (whiteFigures.Count == 0)
+			// Count pieces for each side
+			for (int y = 0; y < BoardController.BoardSize; y++)
+			{
+				for (int x = 0; x < BoardController.BoardSize; x++)
+				{
+					int piece = board[y, x];
+					if (piece is 1 or 3) // White common (1) or white queen (3)
+						hasWhitePieces = true;
+					else if (piece is 2 or 4) // Black common (2) or black queen (4)
+						hasBlackPieces = true;
+
+					// Early exit if both colors found
+					if (hasWhitePieces && hasBlackPieces)
+						break;
+				}
+
+				if (hasWhitePieces && hasBlackPieces)
+					break;
+			}
+
+			// Check if either side has no pieces left
+			if (!hasWhitePieces)
+				return GameState.OpponentWin; // Black (opponent) wins
+
+			if (!hasBlackPieces)
+				return GameState.PlayerWin; // White (player) wins
+
+			// Both sides have pieces, check if they have valid moves
+			bool whiteHasMoves = HasAnyValidMovesForColor(board, isBlack: false);
+			bool blackHasMoves = HasAnyValidMovesForColor(board, isBlack: true);
+
+			// If neither side has moves, it's a draw (stalemate)
+			if (!whiteHasMoves && !blackHasMoves)
+				return GameState.Draw;
+
+			// If white has no moves, black wins
+			if (!whiteHasMoves)
 				return GameState.OpponentWin;
 
-			if (blackFigures.Count == 0)
+			// If black has no moves, white wins
+			if (!blackHasMoves)
 				return GameState.PlayerWin;
 
-			// Check if white (player) has any valid moves
-			bool playerHasMoves = HasAnyValidMoves(board, whiteFigures);
-			bool opponentHasMoves = HasAnyValidMoves(board, blackFigures);
-
-			// If player has no moves, opponent wins
-			if (!playerHasMoves)
-				return GameState.OpponentWin;
-
-			// If opponent has no moves, player wins
-			if (!opponentHasMoves)
-				return GameState.PlayerWin;
-
-			// If both have moves, game continues
+			// Both sides have pieces and moves, game continues
 			return GameState.Playing;
 		}
 
-		private static bool HasAnyValidMoves(int[,] board, List<PositionPoint> figures)
+		/// <summary>
+		/// Check if a specific color has any valid moves (attacks or simple moves)
+		/// </summary>
+		/// <param name="board">The game board state</param>
+		/// <param name="isBlack">True to check black pieces (2, 4), false to check white pieces (1, 3)</param>
+		/// <returns>True if the color has at least one valid move</returns>
+		private static bool HasAnyValidMovesForColor(int[,] board, bool isBlack)
 		{
-			foreach (var figurePoint in figures)
+			for (int y = 0; y < BoardController.BoardSize; y++)
 			{
-				// Check if figure has any attack moves
-				var attacks = GetAvailableAttacksDictionary(board, new Vector2Int(figurePoint.X, figurePoint.Y));
-				if (attacks.Count > 0)
+				for (int x = 0; x < BoardController.BoardSize; x++)
 				{
-					Debug.Log($"Has attacks");
-					return true;
-				}
+					int piece = board[y, x];
 
-				// Check if figure has any simple moves
-				var moves = GetAvailableSimpleMoves(board, new Vector2Int(figurePoint.X, figurePoint.Y));
-				if (moves.Count > 0)
-				{
-					Debug.Log($"Has moves");
-					return true;
+					// Skip empty squares
+					if (piece == 0)
+						continue;
+
+					// Check if piece belongs to the color we're checking
+					// Black pieces: 2 (common) and 4 (queen)
+					// White pieces: 1 (common) and 3 (queen)
+					bool isBlackPiece = (piece == 2 || piece == 4);
+
+					if (isBlackPiece != isBlack)
+						continue;
+
+					Vector2Int position = new Vector2Int(x, y);
+
+					// Check if this piece has any attack moves
+					var attacks = GetAvailableAttacksForFigure(board, position);
+					if (attacks.Count > 0)
+						return true;
+
+					// Check if this piece has any simple moves
+					var moves = GetAvailableSimpleMovesForFigure(board, position);
+					if (moves.Count > 0)
+						return true;
 				}
 			}
 

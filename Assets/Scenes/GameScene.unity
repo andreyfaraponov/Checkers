@@ -3066,7 +3066,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 600ed5d2fc5a249c995c3005ef2d198c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.GameController
-  _board: {fileID: 1673739960}
+  _boardController: {fileID: 1673739960}
   _mainCamera: {fileID: 249873202}
   _guiController: {fileID: 1564781474}
   _difficultySelector: {fileID: 7167473037567761753}

@@ -1,235 +1,226 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Core;
 using Cysharp.Threading.Tasks;
-using Gameplay;
 using UnityEngine;
 using Utils;
-using Object = UnityEngine.Object;
 
 namespace Controllers
 {
 	public class PlayerWithInputController : IPlayerController
 	{
-		private readonly Board _board;
+		private readonly BoardController _boardController;
 
 		private UniTaskCompletionSource _currentTurnCompletionSource;
-		private Figure _selectedFigure;
-		private Dictionary<Vector2Int, AttackData> _moveToAttackPoint = new();
-		private Dictionary<Vector2Int, Dictionary<Vector2Int, AttackData>> _figuresThatCanAttack = new();
-		private List<Vector2Int> _availableMoves = new();
 
-		public PlayerWithInputController(Board board)
+		private bool _isFigureSelected;
+		private Vector2Int _selectedFigurePosition;
+
+		private Dictionary<Vector2Int, AttackData> _moveToAttackPoints = new();
+
+		private Dictionary<Vector2Int, Dictionary<Vector2Int, AttackData>> _figuresThatCanAttack =
+			new();
+
+		private List<Vector2Int> _availableMoves = new();
+		private bool _isBlackSide;
+		private bool _turnInProgress;
+		private bool _isFigureLocked;
+
+		public PlayerWithInputController(BoardController boardController, bool isBlackSide = false)
 		{
-			_board = board;
+			_isBlackSide = isBlackSide;
+			_boardController = boardController;
+
+			_boardController.FigureClickEvent += OnFigureClicked;
+		}
+
+		private void OnFigureClicked(Vector2Int pos)
+		{
+			Debug.LogError($"Figure clicked at position: {pos}");
+			if (!_turnInProgress)
+				return;
+
+			if (IsPlayerFigureAtPosition(pos))
+				ProceedFigureClick(pos);
 		}
 
 		public UniTask AwaitMove()
 		{
+			_turnInProgress = true;
 			_availableMoves.Clear();
-			_moveToAttackPoint.Clear();
-			Debug.Log($"Player turn");
-			Subscribe();
-			_currentTurnCompletionSource = new UniTaskCompletionSource();
-			CheckAttackPositions();
+			_moveToAttackPoints.Clear();
+			CheckAvailableMoves();
 
+			_currentTurnCompletionSource = new UniTaskCompletionSource();
 			return _currentTurnCompletionSource.Task;
 		}
 
-		private void CheckAttackPositions()
+		private void CheckAvailableMoves()
 		{
 			_figuresThatCanAttack.Clear();
-
-			var playerFigures = _points
-				.Where(p => p.Figure != null && !p.Figure.IsBlack)
-				.Select(p => p.Figure);
-
-			foreach (var figure in playerFigures)
-			{
-				var attackMoves = GetAvailableAttackMoves(figure);
-				if (attackMoves.Count > 0)
-					_figuresThatCanAttack.Add(figure, attackMoves);
-			}
-		}
-
-		private void PointOnPointClickEvent(PositionPoint moveTo)
-		{
-			if (_selectedFigure != null)
-			{
-				if (!IsValidMove(moveTo))
-					return;
-
-				if (IsMoveWithAttackPossible())
-				{
-					ExecuteAttackMove(moveTo);
-				}
-				else if (IsSimpleMovePossible(_selectedFigure, moveTo))
-				{
-					ExecuteSimpleMove(moveTo);
-				}
-			}
-
-			ClearSelectionAndHighlights();
-		}
-
-		private bool IsValidMove(PositionPoint moveTo)
-		{
-			if (_figuresThatCanAttack.Count == 0)
-				return true;
-
-			return _figuresThatCanAttack.ContainsKey(_selectedFigure) &&
-			       _figuresThatCanAttack[_selectedFigure].ContainsKey(moveTo);
-		}
-
-		private void ExecuteAttackMove(PositionPoint moveTo)
-		{
-			MoveFigure(_selectedFigure, moveTo);
-			AttackFigure(moveTo);
-
-			CheckAndPromoteToQueen(_selectedFigure, moveTo);
-
-			_moveToAttackPoint = GetAvailableAttackMoves(_selectedFigure);
-
-			if (_moveToAttackPoint.Count > 0)
-			{
-				CheckAttackPositions();
-				FigureOnPickFigureEvent(_selectedFigure);
-				return;
-			}
-
-			CompleteTurn();
-		}
-
-		private void ExecuteSimpleMove(PositionPoint moveTo)
-		{
-			var figurePoint = GetFigurePosition(_selectedFigure);
-			figurePoint.SetFigure(null);
-			moveTo.SetFigure(_selectedFigure);
-
-			CheckAndPromoteToQueen(_selectedFigure, moveTo);
-			CompleteTurn();
-		}
-
-		private void CompleteTurn()
-		{
-			Unsubscribe();
-			_currentTurnCompletionSource.TrySetResult();
-		}
-
-		private void ClearSelectionAndHighlights()
-		{
-			_selectedFigure = null;
 			_availableMoves.Clear();
-			_moveToAttackPoint.Clear();
-			HideAllHighlights();
-		}
 
-		private void AttackFigure(PositionPoint moveTo)
-		{
-			var pointFigureToRemove = _moveToAttackPoint[moveTo];
-			bool isBlackFigure = _board.CurrentBoard[pointFigureToRemove.AttackPosition.y, pointFigureToRemove.AttackPosition.x] % 2 == 0;
-			
-			Object.Destroy(pointFigureToRemove.AttackPosition.Figure.gameObject);
-			pointFigureToRemove.AttackPosition.SetFigure(null);
-			
-			_boardReference?.OnFigureAttacked(isBlackFigure);
-		}
-
-		private void MoveFigure(Figure figure, PositionPoint destination)
-		{
-			var figurePoint = GetFigurePosition(figure);
-			figurePoint.SetFigure(null);
-			destination.SetFigure(figure);
-		}
-
-		private PositionPoint GetFigurePosition(Figure figure) =>
-			_points.First(p => p.Figure == figure);
-
-		private void CheckAndPromoteToQueen(Figure figure, PositionPoint position)
-		{
-			if (figure.IsQueen)
-				return;
-
-			// White pieces (player) reach top row (y = 7), black pieces reach bottom row (y = 0)
-			int promotionRow = figure.IsBlack ? 0 : Board.BoardSize - 1;
-
-			if (position.Y == promotionRow)
+			for (int y = 0; y < BoardController.BoardSize; y++)
 			{
-				figure.SetQueen();
-				Debug.Log($"{(figure.IsBlack ? "Black" : "White")} piece promoted to Queen at ({position.X}, {position.Y})");
+				for (int x = 0; x < BoardController.BoardSize; x++)
+				{
+					var pos = new Vector2Int(x, y);
+
+					if (IsPlayerFigureAtPosition(pos))
+					{
+						var attackMoves = GetAvailableAttackMoves(pos);
+						if (attackMoves.Count > 0)
+							_figuresThatCanAttack.Add(pos, attackMoves);
+
+						var moveMoves =
+							CheckersBasics.GetAvailableSimpleMovesForFigure(
+								_boardController.CurrentBoard, pos);
+						_availableMoves.AddRange(moveMoves);
+					}
+				}
+			}
+
+			if (_figuresThatCanAttack.Count == 0 && _availableMoves.Count == 0)
+			{
+				// No moves available - end turn immediately
+				CompleteTurn();
 			}
 		}
 
-		private bool IsMoveWithAttackPossible() =>
-			_figuresThatCanAttack.ContainsKey(_selectedFigure);
-
-		private bool IsSimpleMovePossible(Figure _, PositionPoint point) =>
-			point.Figure == null && _availableMoves.Contains(point);
-
-		private void HideAllHighlights() =>
-			_points.ForEach(p => p.Highlight(false));
-
-		private void FigureOnPickFigureEvent(Figure figure)
+		private async void ProceedFigureClick(Vector2Int pos)
 		{
-			HideAllHighlights();
-
-			if (_figuresThatCanAttack.Count > 0 && !_figuresThatCanAttack.ContainsKey(figure))
-				return; // TODO: Show feedback when player must attack
-
-			var point = _points.FirstOrDefault(p => p.Figure == figure);
-			if (point == null)
-				return;
-
-			_selectedFigure = figure;
-			_availableMoves = GetAvailableMoves(figure);
-			_moveToAttackPoint = GetAvailableAttackMoves(figure);
-
-			if (_moveToAttackPoint.Count > 0)
+			if (_isFigureLocked)
 			{
-				foreach (var position in _moveToAttackPoint.Keys)
-					position.Highlight(true);
+				if (_moveToAttackPoints.ContainsKey(pos))
+				{
+					await StrikeAsync(pos, _moveToAttackPoints[pos]);
+					UpdateAttackHighlightForSelectedFigure(pos);
+					
+					if (_moveToAttackPoints.Count == 0)
+						CompleteTurn();
+				}
+				else
+				{
+					Debug.LogError($"ONE MORE ATTACK POSSIBLE BUT CLICKED WRONG POSITION");
+					// GIVE FIDBACK THAT FIGURE IS LOCKED
+				}
+				
+				return;
+			}
+
+			_boardController.ResetHighlights();
+
+			if (_isFigureSelected)
+			{
+				if (_figuresThatCanAttack.Count > 0)
+				{
+					if (_moveToAttackPoints.TryGetValue(pos, out var attackData))
+					{
+						await StrikeAsync(pos, attackData);
+						UpdateAttackHighlightForSelectedFigure(pos);
+						_isFigureLocked = true;
+						
+						if (_moveToAttackPoints.Count == 0)
+							CompleteTurn();
+					}
+					else
+					{
+						DeselectFigure(pos);
+					}
+					
+					return;
+				}
+
+				if (_availableMoves.Contains(pos))
+				{
+					await ProceedSimpleMoveAsync(pos);
+					CompleteTurn();
+					return;
+				}
+
+				DeselectFigure(pos);
 			}
 			else
 			{
-				foreach (var position in _availableMoves)
-					position.Highlight(true);
-			}
-		}
+				_moveToAttackPoints = GetAvailableAttackMoves(pos);
+				_availableMoves =
+					GetSimpleMoveForFigure(pos);
 
-		private Dictionary<PositionPoint, AttackData> GetAvailableAttackMoves(Figure figure)
-		{
-			var figurePosition = GetFigurePosition(figure);
-			return CheckersBasics.GetAvailableAttacksDictionary(_board.CurrentBoard, figurePosition);
-		}
-
-		private List<PositionPoint> GetAvailableMoves(Figure selectedFigure)
-		{
-			var figurePosition = GetFigurePosition(selectedFigure);
-			return CheckersBasics.GetAvailableSimpleMoves(_board, figurePosition);
-		}
-
-		private void Unsubscribe() =>
-			ToggleEventSubscription(false);
-
-		private void Subscribe() =>
-			ToggleEventSubscription(true);
-
-		private void ToggleEventSubscription(bool subscribe)
-		{
-			foreach (var point in _points)
-			{
-				if (subscribe)
-					point.PointClickEvent += PointOnPointClickEvent;
-				else
-					point.PointClickEvent -= PointOnPointClickEvent;
-
-				if (point.Figure != null && !point.Figure.IsBlack)
+				if (_moveToAttackPoints.Count > 0)
 				{
-					if (subscribe)
-						point.Figure.PickFigureEvent += FigureOnPickFigureEvent;
-					else
-						point.Figure.PickFigureEvent -= FigureOnPickFigureEvent;
+					foreach (var position in _moveToAttackPoints.Keys)
+					{
+						_boardController.HighlightPosition(position);
+					}
+
+					_isFigureSelected = true;
+					_selectedFigurePosition = pos;
+				}
+				else if (_availableMoves.Count > 0)
+				{
+					foreach (var position in _availableMoves)
+					{
+						_boardController.HighlightPosition(position);
+					}
+
+					_isFigureSelected = true;
+					_selectedFigurePosition = pos;
 				}
 			}
+		}
+
+		private UniTask ProceedSimpleMoveAsync(Vector2Int pos)
+		{
+			_boardController.ResetHighlights();
+			return _boardController.MakeMoveAsync(_selectedFigurePosition, pos);
+		}
+
+		private void UpdateAttackHighlightForSelectedFigure(Vector2Int pos)
+		{
+			_moveToAttackPoints = GetAvailableAttackMoves(pos);
+
+			foreach (var position in _moveToAttackPoints.Keys) 
+				_boardController.HighlightPosition(position);
+		}
+
+		private void DeselectFigure(Vector2Int pos)
+		{
+			_isFigureSelected = false;
+		}
+
+		private async Task StrikeAsync(Vector2Int pos, AttackData attackData)
+		{
+			_boardController.ResetHighlights();
+			
+			await _boardController.MakeAttackAsync(_selectedFigurePosition, pos,
+				attackData.AttackPosition);
+
+			_selectedFigurePosition = pos;
+		}
+
+		private bool IsPlayerFigureAtPosition(Vector2Int pos)
+		{
+			if (_boardController.CurrentBoard[pos.y, pos.x] == 0)
+				return false;
+
+			bool isBlackFigure = _boardController.CurrentBoard[pos.y, pos.x] % 2 == 0;
+			return isBlackFigure == _isBlackSide;
+		}
+
+		private List<Vector2Int> GetSimpleMoveForFigure(Vector2Int pos) =>
+			CheckersBasics.GetAvailableSimpleMovesForFigure(_boardController.CurrentBoard,
+				pos);
+
+		private Dictionary<Vector2Int, AttackData> GetAvailableAttackMoves(Vector2Int pos) =>
+			CheckersBasics.GetAvailableAttacksForFigure(_boardController.CurrentBoard, pos);
+
+		private void CompleteTurn()
+		{
+			Debug.LogError($"Player completed turn");
+			_turnInProgress = false;
+			_isFigureLocked = false;
+			_isFigureSelected = false;
+			_currentTurnCompletionSource.TrySetResult();
 		}
 	}
 }

@@ -1,6 +1,7 @@
 using Controllers;
 using Controllers.AI;
 using Cysharp.Threading.Tasks;
+using Gameplay;
 using UI;
 using UnityEngine;
 using Utils;
@@ -10,7 +11,7 @@ namespace Core
 	public class GameController : MonoBehaviour
 	{
 		[SerializeField]
-		private Board _board;
+		private BoardController _boardController;
 
 		[SerializeField]
 		private Camera _mainCamera;
@@ -39,13 +40,13 @@ namespace Core
 			Application.targetFrameRate = 60;
 			_guiController.PlayOneMoreGameEvent += ShowDifficultySelector;
 			_difficultySelector.GameStartEvent += OnDifficultySelected;
-			_board.FigureAttackedEvent += FigureAttackedHandler;
+			_boardController.FigureAttackedEvent += FigureAttackedHandler;
 			ShowDifficultySelector();
 		}
 
-		private void FigureAttackedHandler(bool isBlackFigure)
+		private void FigureAttackedHandler(Figure eliminatedFigure)
 		{
-			if (isBlackFigure)
+			if (eliminatedFigure.IsBlack)
 				_playerScore++;
 			else
 				_opponentScore++;
@@ -74,23 +75,22 @@ namespace Core
 			_guiController.HideAll();
 			_playerScore = 0;
 			_opponentScore = 0;
-			_board.RefreshBoard();
-			_board.LocateFigures();
-			_player = new PlayerWithInputController(_board.CurrentBoard,
-				_board.Points, _board);
+			_boardController.RefreshBoard();
+			_boardController.SpawnInitialFigures();
+			_player = new PlayerWithInputController(_boardController);
 			_guiController.UpdateScore(_playerScore, _opponentScore);
-			_opponent = CreateOpponent();
+			_opponent = CreateOpponent(isBlack: true);
 			StartGameLoopAsync().Forget();
 		}
 
-		private IPlayerController CreateOpponent()
+		private IPlayerController CreateOpponent(bool isBlack)
 		{
 			return _currentDifficulty switch
 			{
-				Difficulty.Easy => new EasyBotController(_board.CurrentBoard, _board.Points, _board),
-				Difficulty.Medium => new MediumBotController(_board.CurrentBoard, _board.Points, _board),
-				Difficulty.Hard => new HardBotController(_board.CurrentBoard, _board.Points, _board),
-				_ => new MediumBotController(_board.CurrentBoard, _board.Points, _board)
+				Difficulty.Easy => new EasyBotController(isBlack, _boardController),
+//				Difficulty.Medium => new MediumBotController(_boardController.CurrentBoard, _boardController.Points, _boardController),
+//				Difficulty.Hard => new HardBotController(_boardController.CurrentBoard, _boardController.Points, _boardController),
+//				_ => new MediumBotController(_boardController.CurrentBoard, _boardController.Points, _boardController)
 			};
 		}
 
@@ -118,7 +118,7 @@ namespace Core
 
 		private void CheckGameState()
 		{
-			_gameState = CheckersBasics.CheckGameState(_board.CurrentBoard, _board.Points);
+			_gameState = CheckersBasics.CheckGameState(_boardController.CurrentBoard);
 
 			if (_gameState != GameState.Playing)
 			{
