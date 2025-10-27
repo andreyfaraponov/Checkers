@@ -26,10 +26,10 @@ namespace Utils
 
 		public static Dictionary<Vector2Int, AttackData> GetAvailableAttacksForFigure(
 			int[,] board,
-			Vector2Int figurePoint)
+			Vector2Int startPosition)
 		{
 			var result = new Dictionary<Vector2Int, AttackData>();
-			var figure = board[figurePoint.y, figurePoint.x];
+			var figure = board[startPosition.y, startPosition.x];
 
 			if (figure == 0)
 				return result;
@@ -40,7 +40,7 @@ namespace Utils
 				// Queens can attack long range in all 4 directions
 				foreach (var (dy, dx) in Directions)
 				{
-					TryAddQueenAttacksInDirection(figurePoint, board, result,
+					TryAddQueenAttacksInDirection(startPosition, board, result,
 						dy, dx);
 				}
 			}
@@ -49,7 +49,7 @@ namespace Utils
 				// Regular pieces can attack in all 4 diagonal directions (one square jump)
 				foreach (var (dy, dx) in Directions)
 				{
-					TryAddAttackInDirection(figurePoint, board, result,
+					TryAddAttackInDirection(startPosition, board, result,
 						dy, dx);
 				}
 			}
@@ -104,7 +104,7 @@ namespace Utils
 			var targetPosition = board[newY, newX];
 
 			if (targetPosition == 0)
-				list.Add(new Vector2Int(newY, newX));
+				list.Add(new Vector2Int(newX, newY));
 		}
 
 		/// <summary>
@@ -198,7 +198,7 @@ namespace Utils
 			int adjacentY = point.y + dy;
 			int landingX = point.x + 2 * dx;
 			int landingY = point.y + 2 * dy;
-
+			
 			// Check if adjacent position is within bounds
 			if (!IsInBounds(adjacentX, adjacentY))
 				return;
@@ -213,8 +213,8 @@ namespace Utils
 			// Adjacent position must have an enemy figure
 			if (adjacentPosition == 0)
 				return;
-
-			if (adjacentPosition % 2 == 0 && pointPosition % 2 == 0)
+			
+			if ((adjacentPosition % 2 == 0) == (pointPosition % 2 == 0))
 				return;
 
 			var landingPosition = board[landingY, landingX];
@@ -223,10 +223,10 @@ namespace Utils
 			if (landingPosition != 0)
 				return;
 
-			dict[new Vector2Int(landingY, landingY)] = new AttackData
+			dict[new Vector2Int(landingX, landingY)] = new AttackData
 			{
-				AttackPosition = new Vector2Int(adjacentY, adjacentX),
-				FinalPosition = new Vector2Int(landingY, landingX),
+				AttackPosition = new Vector2Int(adjacentX, adjacentY),
+				FinalPosition = new Vector2Int(landingX, landingY),
 				StartPosition = point
 			};
 		}

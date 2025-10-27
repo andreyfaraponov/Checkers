@@ -11,7 +11,7 @@ namespace Core
 	{
 		public const int BoardSize = 8;
 
-		public event Action<Vector2Int> FigureClickEvent; 
+		public event Action<Vector2Int> CellClickEvent; 
 		public event Action<Figure> FigureAttackedEvent;
 
 		[Header("Points")]
@@ -191,12 +191,10 @@ namespace Core
 					var pos = new Vector3(initPos.x + x * _cellSize, 0, initPos.y);
 					var point = Instantiate(_cellPrefab, _cellsRoot);
 
-					if ((y + x) % 2 == 0)
-					{
+					if ((y + x) % 2 == 0) 
 						point.SetBlack();
-						point.PointClickEvent += OnPointClick;
-					}
-
+					
+					point.PointClickEvent += OnPointClick;
 					point.transform.position = pos;
 					point.SetPosition(x, y);
 					_board[y, x] = GetFigureFromPosition(point);
@@ -206,7 +204,7 @@ namespace Core
 		}
 
 		private void OnPointClick(PositionPoint obj) => 
-			FigureClickEvent?.Invoke(new Vector2Int(obj.X, obj.Y));
+			CellClickEvent?.Invoke(new Vector2Int(obj.X, obj.Y));
 
 		public void ResetHighlights()
 		{
