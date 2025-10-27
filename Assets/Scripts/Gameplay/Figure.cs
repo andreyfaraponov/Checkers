@@ -19,23 +19,23 @@ namespace Gameplay
 		[SerializeField]
 		private GameObject _queenCrown;
 
-		private bool _isQueen;
-
 		public bool IsBlack { get; private set; }
 
-		public bool IsQueen => _isQueen;
+		public bool IsQueen => BoardValue > 2;
 
-		public int BoardValue => (IsBlack ? 2 : 1) + (IsQueen ? 1 : 0);
+		public int BoardValue { get; private set; }
 
 		private void Awake()
 		{
+			BoardValue = 1;
 			if (_queenCrown != null)
-				_queenCrown.SetActive(_isQueen);
+				_queenCrown.SetActive(IsQueen);
 		}
 
 		public void SetBlack()
 		{
 			IsBlack = true;
+			BoardValue = 2;
 			
 			if (!Application.isPlaying)
 				return;
@@ -46,7 +46,10 @@ namespace Gameplay
 
 		public void SetQueen()
 		{
-			_isQueen = true;
+			if (BoardValue > 2)
+				return;
+			
+			BoardValue += 2;
 
 			if (_queenCrown != null && Application.isPlaying)
 				_queenCrown.SetActive(true);

@@ -18,12 +18,10 @@ namespace Controllers.AI
 
 		public async UniTask AwaitMove()
 		{
-			var currentBoardState = _boardController.CurrentBoard.Clone() as int[,];
-
-			if (await MakeAttackAsync(currentBoardState))
+			if (await MakeAttackAsync(_boardController.CurrentBoard))
 				return;
 
-			await MakeMoveAsync(currentBoardState);
+			await MakeMoveAsync(_boardController.CurrentBoard);
 		}
 
 		protected abstract UniTask<bool> MakeAttackAsync(int[,] currentBoardState);

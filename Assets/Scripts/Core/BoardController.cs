@@ -34,6 +34,9 @@ namespace Core
 		[SerializeField]
 		private Transform _figuresRoot;
 
+		[SerializeField]
+		private RemovedFiguresHolder _removedFiguresHolder;
+
 		private int[,] _board = new int[BoardSize, BoardSize];
 
 		public int[,] CurrentBoard => _board;
@@ -81,6 +84,8 @@ namespace Core
 			var victimFigure = _points[victimPosition.y * BoardSize + victimPosition.x].Figure;
 			await _points[victimPosition.y * BoardSize + victimPosition.x].SetFigureAsync(attackerFigure, .15f);
 			FigureAttackedEvent?.Invoke(victimFigure);
+			_points[victimPosition.y * BoardSize + victimPosition.x].SetFigure(null);
+			_removedFiguresHolder.AddPiece(victimFigure);
 			// TODO Make Animation of elemination
 			await _points[to.y * BoardSize + to.x].SetFigureAsync(attackerFigure, .15f);
 			
@@ -102,23 +107,8 @@ namespace Core
 			if (position.y == promotionRow)
 			{
 				figure.SetQueen();
-				Debug.Log($"{(figure.IsBlack ? "Black" : "White")} AI piece promoted to Queen at ({position.x}, {position.y})");
+				_board[position.y, position.x] = figure.BoardValue;
 			}
-		}
-
-		private static int GetFigureFromPosition(PositionPoint point)
-		{
-			if (point.Figure != null)
-			{
-				if (point.Figure.IsBlack)
-				{
-					return point.Figure.IsQueen ? 4 : 2;
-				}
-				
-				return point.Figure.IsQueen ? 3 : 1;
-			}
-			
-			return 0;
 		}
 
 		public void Clear()
@@ -197,7 +187,7 @@ namespace Core
 					point.PointClickEvent += OnPointClick;
 					point.transform.position = pos;
 					point.SetPosition(x, y);
-					_board[y, x] = GetFigureFromPosition(point);
+					_board[y, x] = point.Figure?.BoardValue ?? 0;
 					_points.Add(point);
 				}
 			}
