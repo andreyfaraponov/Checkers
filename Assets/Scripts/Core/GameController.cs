@@ -101,24 +101,28 @@ namespace Core
 			{
 				_guiController.ShowTurn(isUserTurn: true);
 				await UniTask.Delay(500);
+                _player.EnableInput(true);
 				await _player.AwaitMove();
-				CheckGameState();
+                _player.EnableInput(false);
+                CheckGameState(isBlackTurn: true);
 
-				if (_gameState != GameState.Playing)
+                if (_gameState != GameState.Playing)
 					break;
 
 				_guiController.ShowTurn(isUserTurn: false);
 				await UniTask.Delay(500);
+                _opponent.EnableInput(true);
 				await _opponent.AwaitMove();
-				CheckGameState();
+                _opponent.EnableInput(false);
+				CheckGameState(isBlackTurn: false);
 			}
 
 			DisplayGameEnd();
 		}
 
-		private void CheckGameState()
+		private void CheckGameState(bool isBlackTurn)
 		{
-			_gameState = CheckersBasics.CheckGameState(_boardController.CurrentBoard);
+			_gameState = CheckersBasics.CheckGameState(_boardController.CurrentBoard, isBlackTurn);
 
 			if (_gameState != GameState.Playing)
 			{

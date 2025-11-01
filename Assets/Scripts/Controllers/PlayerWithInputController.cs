@@ -30,6 +30,7 @@ namespace Controllers
 		private List<Vector2Int> _currentFigureAvailableMoves = new();
 
 		private TurnState _turnState;
+        private bool _isInputEnabled = false;
 
 		public PlayerWithInputController(BoardController boardController, bool isBlackSide = false)
 		{
@@ -49,8 +50,16 @@ namespace Controllers
 			return _currentTurnCompletionSource.Task;
 		}
 
-		private async void OnCellClicked(Vector2Int pos)
+        public void EnableInput(bool enable)
+        {
+            _isInputEnabled = enable;
+        }
+
+        private async void OnCellClicked(Vector2Int pos)
 		{
+            if (!_isInputEnabled)
+                return;
+            
 			switch (_turnState)
 			{
 				case TurnState.SelectingFigure:
@@ -108,8 +117,6 @@ namespace Controllers
 
 					break;
 			}
-			
-			Debug.LogError($"Pos Click: {pos.y} {pos.x}, current state: {_turnState}");
 		}
 
 		private async Task MakeAttackWithCheckAsync(AttackData attackData)
@@ -192,7 +199,6 @@ namespace Controllers
 
 			if (_figuresThatCanAttack.Count == 0 && _availableMoves.Count == 0)
 			{
-				// No moves available - end turn immediately
 				CompleteTurn();
 			}
 		}
@@ -209,7 +215,6 @@ namespace Controllers
 				return false;
 
 			bool isBlackFigure = _boardController.CurrentBoard[pos.y, pos.x] % 2 == 0;
-			Debug.LogError($"IsPlayerFigureAtPosition: {pos} - {isBlackFigure == _isBlackSide}, FIGURE VALUE: {_boardController.CurrentBoard[pos.y, pos.x]}");
 			return isBlackFigure == _isBlackSide;
 		}
 

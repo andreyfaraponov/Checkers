@@ -24,7 +24,12 @@ namespace Controllers.AI
 			await MakeMoveAsync(_boardController.CurrentBoard);
 		}
 
-		protected abstract UniTask<bool> MakeAttackAsync(int[,] currentBoardState);
+        public void EnableInput(bool enable)
+        {
+            // Bots do not require input enabling/disabling
+        }
+
+        protected abstract UniTask<bool> MakeAttackAsync(int[,] currentBoardState);
 		protected abstract UniTask MakeMoveAsync(int[,] currentBoardState);
 
 		protected async UniTask MakeBoardActionAsync(ScoredMove scoredMove)

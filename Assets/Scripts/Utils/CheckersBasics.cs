@@ -131,7 +131,7 @@ namespace Utils
 					break;
 				}
 
-				result.Add(new Vector2Int(scanY, scanX));
+				result.Add(new Vector2Int(scanX, scanY));
 				distance++;
 			}
 			
@@ -214,7 +214,7 @@ namespace Utils
 					if (isEnemy && !hasEncounteredEnemy)
 					{
 						// Mark this enemy for potential capture
-						enemyPosition = new Vector2Int(scanY, scanX);
+						enemyPosition = new Vector2Int(scanX, scanY);
 						hasEncounteredEnemy = true;
 						distance++;
 						continue;
@@ -249,7 +249,7 @@ namespace Utils
 				   y is >= 0 and < BoardController.BoardSize;
 		}
 
-		public static GameState CheckGameState(int[,] board)
+		public static GameState CheckGameState(int[,] board, bool isBlackTurn)
 		{
 			bool hasWhitePieces = false;
 			bool hasBlackPieces = false;
@@ -290,11 +290,11 @@ namespace Utils
 				return GameState.Draw;
 
 			// If white has no moves, black wins
-			if (!whiteHasMoves)
+			if (!whiteHasMoves && !isBlackTurn)
 				return GameState.OpponentWin;
 
 			// If black has no moves, white wins
-			if (!blackHasMoves)
+			if (!blackHasMoves && isBlackTurn)
 				return GameState.PlayerWin;
 
 			// Both sides have pieces and moves, game continues

@@ -121,6 +121,7 @@ namespace Core
 				DestroyImmediate(pt.gameObject);
 			}
 
+            _removedFiguresHolder.Clear();
 			_board = new int[BoardSize, BoardSize];
 			_points.Clear();
 		}
