@@ -88,9 +88,8 @@ namespace Core
 			return _currentDifficulty switch
 			{
 				Difficulty.Easy => new EasyBotController(isBlack, _boardController),
-//				Difficulty.Medium => new MediumBotController(_boardController.CurrentBoard, _boardController.Points, _boardController),
-//				Difficulty.Hard => new HardBotController(_boardController.CurrentBoard, _boardController.Points, _boardController),
-//				_ => new MediumBotController(_boardController.CurrentBoard, _boardController.Points, _boardController)
+				Difficulty.Medium => new MediumBotController(isBlack, _boardController),
+				Difficulty.Hard => new HardBotController(isBlack, _boardController),
 			};
 		}
 
@@ -102,6 +101,7 @@ namespace Core
 				_guiController.ShowTurn(isUserTurn: true);
 				await UniTask.Delay(500);
                 _player.EnableInput(true);
+                
 				await _player.AwaitMove();
                 _player.EnableInput(false);
                 CheckGameState(isBlackTurn: true);
