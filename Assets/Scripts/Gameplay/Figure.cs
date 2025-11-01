@@ -1,12 +1,9 @@
-using System;
 using UnityEngine;
 
 namespace Gameplay
 {
 	public class Figure : MonoBehaviour
 	{
-		public event Action<Figure> PickFigureEvent;
-		
 		[SerializeField]
 		private MeshRenderer _meshRenderer;
 		
@@ -22,26 +19,23 @@ namespace Gameplay
 		[SerializeField]
 		private GameObject _queenCrown;
 
-		private bool _isQueen;
-
 		public bool IsBlack { get; private set; }
-		public bool IsKnockedOut { get; private set; } = false;
 
-		public bool IsQueen
-		{
-			get => _isQueen;
-			set => _isQueen = value;
-		}
+		public bool IsQueen => BoardValue > 2;
+
+		public int BoardValue { get; private set; }
 
 		private void Awake()
 		{
+			BoardValue = 1;
 			if (_queenCrown != null)
-				_queenCrown.SetActive(_isQueen);
+				_queenCrown.SetActive(IsQueen);
 		}
 
 		public void SetBlack()
 		{
 			IsBlack = true;
+			BoardValue = 2;
 			
 			if (!Application.isPlaying)
 				return;
@@ -52,18 +46,13 @@ namespace Gameplay
 
 		public void SetQueen()
 		{
-			_isQueen = true;
+			if (BoardValue > 2)
+				return;
+			
+			BoardValue += 2;
 
 			if (_queenCrown != null && Application.isPlaying)
 				_queenCrown.SetActive(true);
-		}
-
-		private void OnMouseDown()
-		{
-			if (IsKnockedOut)
-				return;
-			
-			PickFigureEvent?.Invoke(this);
 		}
 	}
 }
