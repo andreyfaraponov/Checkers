@@ -7,48 +7,69 @@ using Utils;
 
 namespace Controllers
 {
-	public enum TurnState
-	{
-		SelectingFigure,
-		MovingFigure,
-		Attacking,
-		ForceAttacking
-	}
+    public enum TurnState
+    {
+        SelectingFigure,
+        MovingFigure,
+        Attacking,
+        ForceAttacking
+    }
 
-	public class PlayerWithInputController : IPlayerController
-	{
-		private readonly BoardController _boardController;
-		private readonly Dictionary<Vector2Int, Dictionary<Vector2Int, AttackData>> _figuresThatCanAttack =
-			new();
+    public class PlayerWithInputController : IPlayerController
+    {
+        private readonly BoardController _boardController;
 
-		private readonly List<Vector2Int> _availableMoves = new();
-		private readonly bool _isBlackSide;
+        private readonly Dictionary<Vector2Int, Dictionary<Vector2Int, AttackData>> _figuresThatCanAttack =
+            new();
 
-		private UniTaskCompletionSource _currentTurnCompletionSource;
-		private Vector2Int _selectedFigurePosition;
-		private Dictionary<Vector2Int, AttackData> _moveToAttackPoints = new();
-		private List<Vector2Int> _currentFigureAvailableMoves = new();
+        private readonly bool _isBlackSide;
 
-		private TurnState _turnState;
+        private UniTaskCompletionSource _currentTurnCompletionSource;
+        private Vector2Int _selectedFigurePosition;
+        private readonly List<Vector2Int> _availableMoves = new();
+        private readonly List<Vector2Int> _posWithMoves = new(); 
+        private Dictionary<Vector2Int, AttackData> _moveToAttackPoints = new();
+        private List<Vector2Int> _currentFigureAvailableMoves = new();
+
+        private TurnState _turnState;
         private bool _isInputEnabled = false;
 
-		public PlayerWithInputController(BoardController boardController, bool isBlackSide = false)
-		{
-			_isBlackSide = isBlackSide;
-			_boardController = boardController;
+        public PlayerWithInputController(BoardController boardController, bool isBlackSide = false)
+        {
+            _isBlackSide = isBlackSide;
+            _boardController = boardController;
 
-			_boardController.CellClickEvent += OnCellClicked;
-		}
+            _boardController.CellClickEvent += OnCellClicked;
+        }
 
-		public UniTask AwaitMove()
-		{
-			_turnState = TurnState.SelectingFigure;
+        public UniTask AwaitMove()
+        {
+            _turnState = TurnState.SelectingFigure;
 
-			CheckAvailableMoves();
+            CheckAvailableMoves();
+            HighlightSelectionPiece();
 
-			_currentTurnCompletionSource = new UniTaskCompletionSource();
-			return _currentTurnCompletionSource.Task;
-		}
+            _currentTurnCompletionSource = new UniTaskCompletionSource();
+            return _currentTurnCompletionSource.Task;
+        }
+
+        private void HighlightSelectionPiece()
+        {
+            if (_figuresThatCanAttack.Count > 0)
+            {
+                foreach (var pos in _figuresThatCanAttack.Keys)
+                {
+                    _boardController.HighlightSelectionAtPosition(pos, isAttack: true);
+                }
+            }
+            else
+            {
+                foreach (var pos in _posWithMoves)
+                {
+                    _boardController.HighlightSelectionAtPosition(pos);
+                }
+            }
+        }
 
         public void EnableInput(bool enable)
         {
@@ -56,179 +77,194 @@ namespace Controllers
         }
 
         private async void OnCellClicked(Vector2Int pos)
-		{
+        {
             if (!_isInputEnabled)
                 return;
             
-			switch (_turnState)
-			{
-				case TurnState.SelectingFigure:
-					if (IsPlayerFigureAtPosition(pos))
-					{
-						SelectPiece(pos);
-						HighlightMoves();
-					}
+            if (_figuresThatCanAttack.Count > 0 && !_figuresThatCanAttack.ContainsKey(pos)
+                && _turnState == TurnState.SelectingFigure)
+                return;
 
-					break;
-				case TurnState.MovingFigure:
-					if (IsPlayerFigureAtPosition(pos))
-					{
-						SelectPiece(pos);
-						HighlightMoves();
-					}
-					else if (_currentFigureAvailableMoves.Contains(pos))
-					{
-						_boardController.ResetHighlights();
-						await _boardController.MakeMoveAsync(_selectedFigurePosition, pos);
-						CompleteTurn();
-					}
-					else
-					{
-						DeselectFigure();
-					}
+            switch (_turnState)
+            {
+                case TurnState.SelectingFigure:
+                    if (IsPlayerFigureAtPosition(pos))
+                    {
+                        SelectPiece(pos);
+                        HighlightMoves();
+                    }
 
-					break;
-				case TurnState.Attacking:
-					if (IsPlayerFigureAtPosition(pos))
-					{
-						SelectPiece(pos);
-						HighlightMoves();
-					}
-					else if (_moveToAttackPoints.ContainsKey(pos))
-					{
-						await MakeAttackWithCheckAsync(_moveToAttackPoints[pos]);
-					}
-					else
-					{
-						DeselectFigure();
-					}
+                    break;
+                case TurnState.MovingFigure:
+                    if (IsPlayerFigureAtPosition(pos))
+                    {
+                        SelectPiece(pos);
+                        HighlightMoves();
+                    }
+                    else if (_currentFigureAvailableMoves.Contains(pos))
+                    {
+                        _boardController.ResetHighlights();
+                        await _boardController.MakeMoveAsync(_selectedFigurePosition, pos);
+                        CompleteTurn();
+                    }
+                    else
+                    {
+                        DeselectFigure();
+                    }
 
-					break;
-				case TurnState.ForceAttacking:
-					if (_moveToAttackPoints.ContainsKey(pos))
-					{
-						await MakeAttackWithCheckAsync(_moveToAttackPoints[pos]);
-					}
-					else
-					{
-						// TODO Highlight that figure is locked
-						Debug.LogError($"ONE MORE ATTACK POSSIBLE BUT CLICKED WRONG POSITION");
-					}
+                    break;
+                case TurnState.Attacking:
+                    if (IsPlayerFigureAtPosition(pos))
+                    {
+                        SelectPiece(pos);
+                        HighlightMoves();
+                    }
+                    else if (_moveToAttackPoints.ContainsKey(pos))
+                    {
+                        await MakeAttackWithCheckAsync(_moveToAttackPoints[pos]);
+                    }
+                    else
+                    {
+                        DeselectFigure();
+                    }
 
-					break;
-			}
-		}
+                    break;
+                case TurnState.ForceAttacking:
+                    if (_moveToAttackPoints.ContainsKey(pos))
+                    {
+                        await MakeAttackWithCheckAsync(_moveToAttackPoints[pos]);
+                    }
+                    else
+                    {
+                        // TODO Highlight that figure is locked
+                        Debug.LogError($"ONE MORE ATTACK POSSIBLE BUT CLICKED WRONG POSITION");
+                    }
 
-		private async Task MakeAttackWithCheckAsync(AttackData attackData)
-		{
-			_boardController.ResetHighlights();
-			await _boardController.MakeAttackAsync(attackData.StartPosition,
-				attackData.FinalPosition, attackData.VictimPosition);
+                    break;
+            }
+        }
 
-			_moveToAttackPoints = GetAvailableAttackMoves(attackData.FinalPosition);
+        private async Task MakeAttackWithCheckAsync(AttackData attackData)
+        {
+            _boardController.ResetHighlights();
+            await _boardController.MakeAttackAsync(attackData.StartPosition,
+                attackData.FinalPosition, attackData.VictimPosition);
 
-			if (_moveToAttackPoints.Count > 0)
-			{
-				_turnState = TurnState.ForceAttacking;
-				HighlightMoves();
-			}
-			else
-			{
-				CompleteTurn();
-			}
-		}
+            _moveToAttackPoints = GetAvailableAttackMoves(attackData.FinalPosition);
 
-		private void HighlightMoves()
-		{
-			_boardController.ResetHighlights();
+            if (_moveToAttackPoints.Count > 0)
+            {
+                _turnState = TurnState.ForceAttacking;
+                HighlightMoves();
+            }
+            else
+            {
+                CompleteTurn();
+            }
+        }
 
-			if (_moveToAttackPoints.Count > 0)
-			{
-				foreach (var attackPosition in _moveToAttackPoints.Keys)
-					_boardController.HighlightPosition(attackPosition);
-			}
-			else
-			{
-				foreach (var movePosition in _currentFigureAvailableMoves)
-					_boardController.HighlightPosition(movePosition);
-			}
-		}
+        private void HighlightMoves()
+        {
+            _boardController.ResetHighlights();
 
-		private void SelectPiece(Vector2Int pos)
-		{
-			_currentFigureAvailableMoves = GetSimpleMoveForFigure(pos);
-			_moveToAttackPoints = GetAvailableAttackMoves(pos);
+            if (_moveToAttackPoints.Count > 0)
+            {
+                foreach (var attackPosition in _moveToAttackPoints.Keys)
+                {
+                    _boardController.HighlightMoveToPosition(attackPosition, attackPosition: true);
+                }
+            }
+            else
+            {
+                foreach (var movePosition in _currentFigureAvailableMoves)
+                    _boardController.HighlightMoveToPosition(movePosition);
+            }
+            
+            if (_turnState is not TurnState.Attacking && _turnState is not TurnState.ForceAttacking)
+                HighlightSelectionPiece();
+        }
 
-			if (_figuresThatCanAttack.Count > 0)
-			{
-				if (!_figuresThatCanAttack.ContainsKey(pos))
-					return;
+        private void SelectPiece(Vector2Int pos)
+        {
+            _currentFigureAvailableMoves = GetSimpleMoveForFigure(pos);
+            _moveToAttackPoints = GetAvailableAttackMoves(pos);
 
-				_selectedFigurePosition = pos;
-				_turnState = TurnState.Attacking;
-			}
-			else
-			{
-				_selectedFigurePosition = pos;
-				_turnState = TurnState.MovingFigure;
-			}
-		}
+            if (_figuresThatCanAttack.Count > 0)
+            {
+                if (!_figuresThatCanAttack.ContainsKey(pos))
+                    return;
 
-		private void CheckAvailableMoves()
-		{
-			_figuresThatCanAttack.Clear();
-			_availableMoves.Clear();
+                _selectedFigurePosition = pos;
+                _turnState = TurnState.Attacking;
+            }
+            else
+            {
+                _selectedFigurePosition = pos;
+                _turnState = TurnState.MovingFigure;
+            }
+        }
 
-			for (int y = 0; y < BoardController.BoardSize; y++)
-			{
-				for (int x = 0; x < BoardController.BoardSize; x++)
-				{
-					var pos = new Vector2Int(x, y);
+        private void CheckAvailableMoves()
+        {
+            _figuresThatCanAttack.Clear();
+            _availableMoves.Clear();
+            _posWithMoves.Clear();
 
-					if (IsPlayerFigureAtPosition(pos))
-					{
-						var attackMoves = GetAvailableAttackMoves(pos);
-						if (attackMoves.Count > 0)
-							_figuresThatCanAttack.Add(pos, attackMoves);
+            for (int y = 0; y < BoardController.BoardSize; y++)
+            {
+                for (int x = 0; x < BoardController.BoardSize; x++)
+                {
+                    var pos = new Vector2Int(x, y);
 
-						var moveMoves = GetSimpleMoveForFigure(pos);
-						_availableMoves.AddRange(moveMoves);
-					}
-				}
-			}
+                    if (IsPlayerFigureAtPosition(pos))
+                    {
+                        var attackMoves = GetAvailableAttackMoves(pos);
+                        if (attackMoves.Count > 0)
+                            _figuresThatCanAttack.Add(pos, attackMoves);
 
-			if (_figuresThatCanAttack.Count == 0 && _availableMoves.Count == 0)
-			{
-				CompleteTurn();
-			}
-		}
+                        var possibleMoves = GetSimpleMoveForFigure(pos);
+                        if (possibleMoves.Count > 0)
+                        {
+                            _availableMoves.AddRange(possibleMoves);
+                            _posWithMoves.Add(pos);
+                        }
+                    }
+                }
+            }
 
-		private void DeselectFigure()
-		{
-			_turnState = TurnState.SelectingFigure;
-			_boardController.ResetHighlights();
-		}
+            if (_figuresThatCanAttack.Count == 0 && _availableMoves.Count == 0)
+            {
+                CompleteTurn();
+            }
+        }
 
-		private bool IsPlayerFigureAtPosition(Vector2Int pos)
-		{
-			if (_boardController.CurrentBoard[pos.y, pos.x] == 0)
-				return false;
+        private void DeselectFigure()
+        {
+            _turnState = TurnState.SelectingFigure;
+            _boardController.ResetHighlights();
+            HighlightSelectionPiece();
+        }
 
-			bool isBlackFigure = _boardController.CurrentBoard[pos.y, pos.x] % 2 == 0;
-			return isBlackFigure == _isBlackSide;
-		}
+        private bool IsPlayerFigureAtPosition(Vector2Int pos)
+        {
+            if (_boardController.CurrentBoard[pos.y, pos.x] == 0)
+                return false;
 
-		private List<Vector2Int> GetSimpleMoveForFigure(Vector2Int pos) =>
-			CheckersBasics.GetAvailableSimpleMovesForFigure(_boardController.CurrentBoard,
-				pos);
+            bool isBlackFigure = _boardController.CurrentBoard[pos.y, pos.x] % 2 == 0;
+            return isBlackFigure == _isBlackSide;
+        }
 
-		private Dictionary<Vector2Int, AttackData> GetAvailableAttackMoves(Vector2Int pos) =>
-			CheckersBasics.GetAvailableAttacksForFigure(_boardController.CurrentBoard, pos);
+        private List<Vector2Int> GetSimpleMoveForFigure(Vector2Int pos) =>
+            CheckersBasics.GetAvailableSimpleMovesForFigure(_boardController.CurrentBoard,
+                pos);
 
-		private void CompleteTurn()
-		{
-			Debug.Log($"Player completed turn");
-			_currentTurnCompletionSource.TrySetResult();
-		}
-	}
+        private Dictionary<Vector2Int, AttackData> GetAvailableAttackMoves(Vector2Int pos) =>
+            CheckersBasics.GetAvailableAttacksForFigure(_boardController.CurrentBoard, pos);
+
+        private void CompleteTurn()
+        {
+            Debug.Log($"Player completed turn");
+            _currentTurnCompletionSource.TrySetResult();
+        }
+    }
 }

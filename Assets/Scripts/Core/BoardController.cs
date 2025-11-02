@@ -199,13 +199,19 @@ namespace Core
 
 		public void ResetHighlights()
 		{
-			_points.ForEach(p => p.Highlight(false));
+			_points.ForEach(p => p.ClearHighlight());
 		}
 
-		public void HighlightPosition(Vector2Int position)
+		public void HighlightMoveToPosition(Vector2Int position, bool attackPosition = false)
 		{
 			var point = _points[position.y * BoardSize + position.x];
-			point.Highlight(true);
+            point.HighlightMove(attackPosition);
 		}
-	}
+
+        public void HighlightSelectionAtPosition(Vector2Int pos, bool isAttack = false)
+        {
+            var point = _points[pos.y * BoardSize + pos.x];
+            point.HighlightSelection(isAttack);
+        }
+    }
 }

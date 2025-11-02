@@ -5,80 +5,84 @@ using UnityEngine;
 
 namespace Gameplay
 {
-	public class PositionPoint : MonoBehaviour
-	{
-		public event Action<PositionPoint> PointClickEvent;
-		
-		[SerializeField]
-		private MeshRenderer _meshRenderer;
+    public class PositionPoint : MonoBehaviour
+    {
+        public event Action<PositionPoint> PointClickEvent;
 
-		[SerializeField]
-		private Material _blackMaterial;
+        [SerializeField] private MeshRenderer _meshRenderer;
+        [SerializeField] private Material _blackMaterial;
+        [SerializeField] private Material _whiteMaterial;
+        [SerializeField] private CellHighlighter cellHighlighter;
 
-		[SerializeField]
-		private Material _whiteMaterial;
+        [SerializeField] private Figure _figure;
 
-		[SerializeField]
-		private GameObject _highlightObject;
+        public Figure Figure => _figure;
 
-		[SerializeField]
-		private Figure _figure;
+        public bool IsBlack { get; private set; }
+        public int Y { get; private set; }
+        public int X { get; private set; }
 
-		public Figure Figure => _figure;
+        private void Awake()
+        {
+            if (!Application.isPlaying)
+                return;
 
-		public bool IsBlack { get; private set; }
-		public int Y { get; private set; }
-		public int X { get; private set; }
+            _meshRenderer.material = _whiteMaterial;
+        }
 
-		private void Awake()
-		{
-			if (!Application.isPlaying)
-				return;
-			
-			_meshRenderer.material = _whiteMaterial;
-		}
+        public void SetBlack()
+        {
+            IsBlack = true;
 
-		public void SetBlack()
-		{
-			IsBlack = true;
-			
-			if (!Application.isPlaying)
-				return;
-			
-			_meshRenderer.material = _blackMaterial;
-		}
+            if (!Application.isPlaying)
+                return;
 
-		public void SetFigure(Figure figure)
-		{
-			_figure = figure;
-			
-			if (_figure != null)
-				figure.transform.DOMove(transform.position, 0.3f);
-		}
-		
-		public UniTask SetFigureAsync(Figure figure, float duration = 0.3f)
-		{
-			_figure = figure;
+            _meshRenderer.material = _blackMaterial;
+        }
 
-			if (_figure != null)
-			{
-				figure.transform.DOMove(transform.position, duration);
-				return UniTask.Delay((int)(duration * 1000));
-			}
-			
-			return UniTask.CompletedTask;
-		}
+        public void SetFigure(Figure figure)
+        {
+            _figure = figure;
 
-		public void Highlight(bool highlight) =>
-			_highlightObject.SetActive(highlight);
+            if (_figure != null)
+                figure.transform.DOMove(transform.position, 0.3f);
+        }
 
-		private void OnMouseDown() => 
-			PointClickEvent?.Invoke(this);
+        public UniTask SetFigureAsync(Figure figure, float duration = 0.3f)
+        {
+            _figure = figure;
 
-		public void SetPosition(int x, int y)
-		{
-			X = x;
-			Y = y;
-		}
-	}
+            if (_figure != null)
+            {
+                figure.transform.DOMove(transform.position, duration);
+                return UniTask.Delay((int)(duration * 1000));
+            }
+
+            return UniTask.CompletedTask;
+        }
+        
+        public void HighlightSelection(bool isToAttack)
+        {
+            cellHighlighter.HighlightSelectCell(isToAttack);
+        }
+        
+        public void HighlightMove(bool isAttack)
+        {
+            cellHighlighter.HighlightMoveCell(isAttack);
+        }
+        
+        public void ClearHighlight()
+        {
+            cellHighlighter.ClearHighlight();
+        }
+
+        private void OnMouseDown() =>
+            PointClickEvent?.Invoke(this);
+
+        public void SetPosition(int x, int y)
+        {
+            X = x;
+            Y = y;
+        }
+    }
 }
