@@ -52,3 +52,4 @@ Turn-based strategy board game
 - ✅ Hard AI difficulty (Phase 3) - Minimax with alpha-beta pruning
 - ✅ Difficulty selection UI (Phase 4) - Complete with visual feedback and integration
 - 🚧 Polish & testing (Phase 5 - optional)
+t
